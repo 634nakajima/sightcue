@@ -1,0 +1,19 @@
+{
+  "name": "vision-trigger-platform",
+  "version": "1.0.0",
+  "description": "Real-time vision-based trigger platform with ROI support",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:python": "bash scripts/build-python.sh",
+    "build:mac": "npm run build:python && electron-builder --mac && bash scripts/sign-mac.sh 'release/mac-arm64/Vision Trigger Platform.app' && bash scripts/create-dmg.sh",
+    "build:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.0.12"
+  }
+}

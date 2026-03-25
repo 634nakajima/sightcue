@@ -1,0 +1,23 @@
+camera:
+  device: 0
+  width: 640
+  height: 480
+
+pipeline:
+  capture_interval: 0.5
+  blip_model: "Salesforce/blip-image-captioning-base"
+  embedding_model: "all-MiniLM-L6-v2"
+
+triggers:
+  default_threshold: 0.45
+  cooldown: 1.0
+  persistence_file: "data/triggers.json"
+
+osc:
+  host: "127.0.0.1"
+  port: 9000
+  address_prefix: "/vision"
+
+server:
+  host: "0.0.0.0"
+  port: 5555

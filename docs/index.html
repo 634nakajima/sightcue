@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision Trigger Platform</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --text-dim: #888;
+      --accent: #e94560;
+      --accent2: #00b894;
+      --accent3: #fdcb6e;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+      overflow-x: hidden;
+    }
+
+    .lang-switch {
+      position: fixed; top: 1.5rem; right: 1.5rem; z-index: 100;
+      display: flex; border: 1px solid var(--border); border-radius: 6px;
+      overflow: hidden; background: var(--surface);
+    }
+    .lang-btn {
+      padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 500;
+      border: none; background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.2s;
+    }
+    .lang-btn.active { background: var(--accent); color: #fff; }
+    .lang-btn:hover:not(.active) { color: var(--text); }
+
+    [lang="en"] { display: none; }
+    body.en [lang="en"] { display: block; }
+    body.en [lang="ja"] { display: none; }
+    body.en span[lang="en"], span[lang="ja"] { display: inline; }
+    body.en span[lang="ja"] { display: none; }
+    span[lang="en"] { display: none; }
+
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; text-align: center;
+      padding: 2rem;
+    }
+    .hero-badge {
+      display: inline-block; padding: 0.3rem 1rem; border-radius: 20px;
+      background: rgba(233,69,96,0.15); color: var(--accent); font-size: 0.85rem;
+      font-weight: 600; margin-bottom: 1.5rem; border: 1px solid rgba(233,69,96,0.3);
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700;
+      line-height: 1.2; margin-bottom: 1rem;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p { font-size: 1.1rem; color: var(--text-dim); max-width: 600px; margin-bottom: 2rem; }
+    .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.15); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    section { padding: 5rem 2rem; max-width: 1000px; margin: 0 auto; }
+    section h2 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    section h2 em { font-style: normal; color: var(--accent); }
+    section .subtitle { color: var(--text-dim); margin-bottom: 2.5rem; font-size: 1rem; }
+
+    .flow {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      flex-wrap: wrap; margin: 2rem 0; font-family: 'SF Mono', monospace; font-size: 0.85rem;
+    }
+    .flow-box {
+      padding: 0.6rem 1.2rem; border-radius: 8px; background: var(--surface2);
+      border: 1px solid var(--border); white-space: nowrap;
+    }
+    .flow-box.highlight { border-color: var(--accent); color: var(--accent); }
+    .flow-arrow { color: var(--text-dim); font-size: 1.2rem; }
+
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem; margin-top: 2rem;
+    }
+    .feature {
+      padding: 1.5rem; border-radius: 12px; background: var(--surface);
+      border: 1px solid var(--border); transition: border-color 0.2s;
+    }
+    .feature:hover { border-color: var(--accent); }
+    .feature-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .feature h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .feature p { font-size: 0.9rem; color: var(--text-dim); }
+
+    .usecases { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .usecase {
+      padding: 1.25rem; border-radius: 10px; background: var(--surface);
+      border: 1px solid var(--border); text-align: center;
+    }
+    .usecase-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .usecase h3 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+    .usecase p { font-size: 0.8rem; color: var(--text-dim); }
+
+    .setup {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 2rem; margin-top: 2rem;
+    }
+    .setup code {
+      display: block; background: var(--bg); padding: 1rem; border-radius: 8px;
+      font-family: 'SF Mono', monospace; font-size: 0.85rem; color: var(--accent2);
+      overflow-x: auto; margin: 0.75rem 0; white-space: pre;
+    }
+    .setup p { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0.5rem; }
+
+    .tech-list {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; justify-content: center;
+    }
+    .tech-tag {
+      padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim);
+    }
+
+    footer {
+      text-align: center; padding: 3rem 2rem; color: var(--text-dim); font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="lang-switch">
+  <button class="lang-btn active" onclick="setLang('ja')">JA</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">Desktop App for macOS</div>
+  <h1 lang="ja"><em>Vision Trigger</em> Platform</h1>
+  <h1 lang="en"><em>Vision Trigger</em> Platform</h1>
+  <p lang="ja">
+    Webカメラの映像をAIがリアルタイムにテキスト化し、
+    あらかじめ登録した状況が発生したらOSC/Socket.IOで外部アプリに通知するプラットフォーム。
+    ROI（関心領域）を自由に設定でき、領域ごとの状況監視が可能です。
+  </p>
+  <p lang="en">
+    An AI-powered platform that converts webcam footage to text in real-time using BLIP,
+    and triggers OSC/Socket.IO notifications when registered situations are detected.
+    Supports multiple ROI (Region of Interest) zones for independent monitoring.
+  </p>
+  <div class="hero-buttons">
+    <a class="btn btn-primary" href="https://github.com/nakashimatakuro/vision-trigger-platform/releases">
+      <span lang="ja">ダウンロード (.dmg)</span>
+      <span lang="en">Download (.dmg)</span>
+    </a>
+    <a class="btn btn-secondary" href="https://github.com/nakashimatakuro/vision-trigger-platform">GitHub</a>
+  </div>
+</div>
+
+<!-- Architecture -->
+<section>
+  <h2 lang="ja"><em>Architecture</em></h2>
+  <h2 lang="en"><em>Architecture</em></h2>
+  <p class="subtitle" lang="ja">映像からアクションまでのデータフロー</p>
+  <p class="subtitle" lang="en">Data flow from camera to action</p>
+  <div class="flow">
+    <div class="flow-box">Webcam</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box">ROI Crop</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box highlight">BLIP Caption</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box highlight">Embedding Similarity</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box">OSC / Socket.IO</div>
+  </div>
+</section>
+
+<!-- Features -->
+<section>
+  <h2 lang="ja"><em>Features</em></h2>
+  <h2 lang="en"><em>Features</em></h2>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🧠</div>
+      <h3 lang="ja">AIキャプション生成</h3>
+      <h3 lang="en">AI Captioning</h3>
+      <p lang="ja">BLIPモデルがカメラ映像をリアルタイムに英語テキストに変換。Apple Silicon（MPS）で高速推論。</p>
+      <p lang="en">BLIP model converts camera frames to English text in real-time. Fast inference on Apple Silicon (MPS).</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎯</div>
+      <h3 lang="ja">テキスト類似度トリガー</h3>
+      <h3 lang="en">Text Similarity Triggers</h3>
+      <p lang="ja">監視したい状況をテキストで登録。Sentence-Transformerでキャプションとの意味的類似度を計算し、閾値を超えたら発火。</p>
+      <p lang="en">Register situations as text. Sentence-Transformer computes semantic similarity with captions and fires when threshold is exceeded.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔲</div>
+      <h3 lang="ja">ROI（関心領域）</h3>
+      <h3 lang="en">ROI (Region of Interest)</h3>
+      <p lang="ja">カメラ映像上に複数のROIを描画。各領域を独立してキャプション生成・トリガー判定。</p>
+      <p lang="en">Draw multiple ROIs on camera feed. Each region gets independent captioning and trigger evaluation.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📡</div>
+      <h3 lang="ja">OSC + Socket.IO出力</h3>
+      <h3 lang="en">OSC + Socket.IO Output</h3>
+      <p lang="ja">トリガー発火時にOSCとSocket.IOで外部アプリに通知。Pure Data、TouchDesigner、Max等と連携。</p>
+      <p lang="en">Notify external apps via OSC and Socket.IO on trigger. Works with Pure Data, TouchDesigner, Max, etc.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📊</div>
+      <h3 lang="ja">リアルタイムモニター</h3>
+      <h3 lang="en">Real-time Monitor</h3>
+      <p lang="ja">類似度バー、OSCモニター、キャプションログをダッシュボードでリアルタイム表示。閾値はドラッグで調整可能。</p>
+      <p lang="en">Similarity bars, OSC monitor, and caption log displayed in real-time dashboard. Threshold adjustable by drag.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3 lang="ja">MPS高速推論</h3>
+      <h3 lang="en">MPS Acceleration</h3>
+      <p lang="ja">PyTorch MPSバックエンドでApple Silicon GPUを活用。1フレームあたり約0.4秒で推論。</p>
+      <p lang="en">Leverages Apple Silicon GPU via PyTorch MPS backend. ~0.4s inference per frame.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Use Cases -->
+<section>
+  <h2 lang="ja"><em>Use Cases</em></h2>
+  <h2 lang="en"><em>Use Cases</em></h2>
+  <p class="subtitle" lang="ja">こんな用途に</p>
+  <p class="subtitle" lang="en">Example applications</p>
+  <div class="usecases">
+    <div class="usecase">
+      <div class="usecase-icon">🎭</div>
+      <h3 lang="ja">インタラクティブアート</h3>
+      <h3 lang="en">Interactive Art</h3>
+      <p lang="ja">映像中の状況変化に応じて音響・照明を制御</p>
+      <p lang="en">Control sound/lighting based on scene changes</p>
+    </div>
+    <div class="usecase">
+      <div class="usecase-icon">🎓</div>
+      <h3 lang="ja">研究プロトタイプ</h3>
+      <h3 lang="en">Research Prototype</h3>
+      <p lang="ja">クロスモーダル知覚実験のパイプライン構築</p>
+      <p lang="en">Build cross-modal perception experiment pipelines</p>
+    </div>
+    <div class="usecase">
+      <div class="usecase-icon">🎵</div>
+      <h3 lang="ja">ライブパフォーマンス</h3>
+      <h3 lang="en">Live Performance</h3>
+      <p lang="ja">演者の動きをOSCでPure Data/Abletonに送信</p>
+      <p lang="en">Send performer actions via OSC to Pure Data/Ableton</p>
+    </div>
+    <div class="usecase">
+      <div class="usecase-icon">🏠</div>
+      <h3 lang="ja">空間監視</h3>
+      <h3 lang="en">Space Monitoring</h3>
+      <p lang="ja">特定の状況を検知して通知・記録</p>
+      <p lang="en">Detect specific situations and notify/log</p>
+    </div>
+  </div>
+</section>
+
+<!-- Getting Started -->
+<section>
+  <h2 lang="ja"><em>Getting Started</em></h2>
+  <h2 lang="en"><em>Getting Started</em></h2>
+  <div class="setup">
+    <p lang="ja"><strong>方法1:</strong> ビルド済みアプリをダウンロード</p>
+    <p lang="en"><strong>Option 1:</strong> Download pre-built app</p>
+    <p lang="ja"><a href="https://github.com/nakashimatakuro/vision-trigger-platform/releases" style="color:var(--accent)">Releases</a> から .dmg をダウンロードして起動するだけ。</p>
+    <p lang="en">Download .dmg from <a href="https://github.com/nakashimatakuro/vision-trigger-platform/releases" style="color:var(--accent)">Releases</a> and launch.</p>
+
+    <p lang="ja" style="margin-top:1.5rem"><strong>方法2:</strong> ソースから実行</p>
+    <p lang="en" style="margin-top:1.5rem"><strong>Option 2:</strong> Run from source</p>
+    <code>git clone https://github.com/nakashimatakuro/vision-trigger-platform.git
+cd vision-trigger-platform
+npm install
+cd python && pip install -r requirements.txt && cd ..
+npm start</code>
+  </div>
+
+  <div class="tech-list">
+    <span class="tech-tag">Electron</span>
+    <span class="tech-tag">Python</span>
+    <span class="tech-tag">PyTorch MPS</span>
+    <span class="tech-tag">BLIP</span>
+    <span class="tech-tag">Sentence-Transformers</span>
+    <span class="tech-tag">Flask-SocketIO</span>
+    <span class="tech-tag">OSC</span>
+  </div>
+</section>
+
+<footer>
+  <p>Vision Trigger Platform &mdash; MIT License</p>
+  <p><a href="https://github.com/nakashimatakuro/vision-trigger-platform">GitHub</a></p>
+</footer>
+
+<script>
+function setLang(lang) {
+  document.body.className = lang === 'en' ? 'en' : '';
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

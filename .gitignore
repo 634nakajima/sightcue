@@ -1,0 +1,9 @@
+node_modules/
+release/
+python/data/triggers.json
+__pycache__/
+*.pyc
+.DS_Store
+python/dist/
+python/build/
+

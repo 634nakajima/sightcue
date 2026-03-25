@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision Trigger Platform</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Vision Trigger Platform</h1>
+    <div class="controls">
+      <select id="camera-select"></select>
+      <button id="btn-toggle" onclick="togglePipeline()">Start</button>
+      <span id="loading-msg" class="loading-msg" style="display:none">Loading models...</span>
+      <button class="btn-settings" onclick="toggleSettings()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Settings Popup -->
+  <div id="settings-overlay" class="settings-overlay" style="display:none" onclick="closeSettingsOutside(event)">
+    <div class="settings-popup">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="settings-close" onclick="toggleSettings()">&times;</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <h3>OSC</h3>
+          <div class="settings-row">
+            <label>Host</label>
+            <input type="text" id="osc-host" value="127.0.0.1" />
+          </div>
+          <div class="settings-row">
+            <label>Port</label>
+            <input type="number" id="osc-port" value="9000" />
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Capture</h3>
+          <div class="settings-row">
+            <label>Interval (sec)</label>
+            <input type="number" id="capture-interval" value="0.5" step="0.1" min="0.1" />
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Info</h3>
+          <div class="settings-row"><label>Device</label><span id="st-device">-</span></div>
+          <div class="settings-row"><label>Models</label><span id="st-models">-</span></div>
+          <div class="settings-row"><label>Inference</label><span id="st-inference">-</span></div>
+        </div>
+      </div>
+      <div class="settings-footer">
+        <button onclick="applySettings()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="panel camera-panel">
+      <h2>Camera Preview <span class="hint">(draw rectangles to create ROIs)</span></h2>
+      <div class="camera-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="roi-overlay"></canvas>
+      </div>
+      <div id="current-caption" class="caption-display">Waiting for caption...</div>
+    </div>
+
+    <div class="panel trigger-panel">
+      <h2>Triggers</h2>
+      <div class="trigger-form">
+        <input type="text" id="trigger-desc" placeholder="Situation to watch for..." />
+        <input type="number" id="trigger-threshold" value="0.45" step="0.05" min="0" max="1" />
+        <button onclick="addTrigger()">Add</button>
+      </div>
+      <ul id="trigger-list"></ul>
+
+      <h2 style="margin-top:12px">ROIs</h2>
+      <ul id="roi-list"></ul>
+      <button class="btn-clear-roi" onclick="clearAllROIs()">Clear All ROIs</button>
+    </div>
+
+    <div class="panel similarity-panel">
+      <h2>Similarity Monitor</h2>
+      <div id="similarity-monitor"></div>
+    </div>
+
+    <div class="panel log-panel">
+      <h2>Caption Log</h2>
+      <div id="caption-log"></div>
+    </div>
+
+    <div class="panel osc-panel">
+      <h2>OSC Monitor</h2>
+      <div id="osc-monitor" class="osc-monitor"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+torch>=2.0
+torchvision
+transformers
+sentence-transformers
+flask
+flask-socketio
+python-osc
+pyyaml
+Pillow
+numpy
