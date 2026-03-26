@@ -3,7 +3,7 @@
 
 const tf = require('@tensorflow/tfjs');
 const { ipcRenderer } = require('electron');
-const { getROIs, setOnROIChanged, drawROIs: roiDrawROIs, clearROIs, removeROI } = require('../roi');
+const { getROIs, setOnROIChanged, drawROIs: roiDrawROIs, clearROIs, removeROI, setROICaption } = require('../roi');
 const oscMonitor = require('../osc-monitor');
 
 let model = null;
@@ -230,80 +230,15 @@ function _sendOSC(roi, predictions, prefix) {
 }
 
 function _drawROIsWithResults() {
-  // Use the shared roi overlay context
-  const overlay = els.overlay || document.getElementById('roi-overlay');
-  if (!overlay) return;
-  const ctx = overlay.getContext('2d');
-
-  // Resize if needed
-  const container = overlay.parentElement;
-  if (container) {
-    const rect = container.getBoundingClientRect();
-    if (overlay.width !== rect.width || overlay.height !== rect.height) {
-      overlay.width = rect.width;
-      overlay.height = rect.height;
-    }
-  }
-
-  const video = els.video;
-  if (!video || !video.videoWidth) {
-    roiDrawROIs();
-    return;
-  }
-
-  // Compute video render rect (handles letterboxing)
-  const vAspect = video.videoWidth / video.videoHeight;
-  const oAspect = overlay.width / overlay.height;
-  let rw, rh, rx, ry;
-  if (vAspect > oAspect) {
-    rw = overlay.width;
-    rh = overlay.width / vAspect;
-    rx = 0;
-    ry = (overlay.height - rh) / 2;
-  } else {
-    rh = overlay.height;
-    rw = overlay.height * vAspect;
-    ry = 0;
-    rx = (overlay.width - rw) / 2;
-  }
-
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
-
+  // Update captions on the shared ROI system, then let it redraw
   const rois = getROIs();
   for (const roi of rois) {
-    const ox = rx + roi.x * rw;
-    const oy = ry + roi.y * rh;
-    const ow = roi.w * rw;
-    const oh = roi.h * rh;
-
-    // Rectangle
-    ctx.strokeStyle = roi.color;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(ox, oy, ow, oh);
-    ctx.fillStyle = roi.color + '30';
-    ctx.fillRect(ox, oy, ow, oh);
-
-    // Label with detection result
     const result = latestResults[roi.id];
-    const displayName = roi.name || `ROI_${roi.id}`;
-    const labelText = result
-      ? `${displayName}: ${result.label} (${(result.probability * 100).toFixed(0)}%)`
-      : displayName;
-
-    ctx.font = 'bold 13px sans-serif';
-    const textWidth = ctx.measureText(labelText).width;
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(ox, oy - 20, textWidth + 8, 20);
-    ctx.fillStyle = roi.color;
-    ctx.fillText(labelText, ox + 4, oy - 6);
-
-    // Corner handles
-    const corners = [[ox, oy], [ox + ow, oy], [ox, oy + oh], [ox + ow, oy + oh]];
-    ctx.fillStyle = roi.color;
-    for (const [cx, cy] of corners) {
-      ctx.fillRect(cx - 4, cy - 4, 8, 8);
+    if (result) {
+      setROICaption(roi.id, `${result.label} (${(result.probability * 100).toFixed(0)}%)`);
     }
   }
+  // setROICaption already calls drawROIs()
 }
 
 function _restartInference() {
