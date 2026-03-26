@@ -2,7 +2,7 @@
 const roi = require('./roi');
 const oscMonitor = require('./osc-monitor');
 
-let currentMode = 'blip';
+let currentMode = null; // null until first switchMode call
 let modes = {};
 
 function init(modeModules) {
@@ -20,7 +20,7 @@ function init(modeModules) {
 }
 
 function switchMode(newMode) {
-  if (newMode === currentMode && document.querySelector('.mode-panel.mode-' + newMode).style.display !== 'none') {
+  if (currentMode !== null && newMode === currentMode) {
     return;
   }
 
@@ -82,6 +82,7 @@ function switchMode(newMode) {
 }
 
 function _stopCurrentMode() {
+  if (!currentMode) return;
   switch (currentMode) {
     case 'blip':
       if (modes.blip) modes.blip.stopBlip();
