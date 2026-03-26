@@ -45,6 +45,10 @@ function initBlip(elements) {
 }
 
 function startBlip() {
+  // Re-register ROI callback (may have been overwritten by TM mode)
+  setOnROIChanged(updateROIList);
+  updateROIList();
+
   // Connect socket.io to Python backend (lazy start Python first)
   if (!socket) {
     _connectSocket();

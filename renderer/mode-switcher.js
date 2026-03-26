@@ -94,7 +94,8 @@ function _stopCurrentMode() {
 function _startNewMode(mode) {
   switch (mode) {
     case 'blip':
-      // BLIP doesn't auto-start, user clicks Start button
+      // Re-register ROI callback, but don't auto-start pipeline
+      if (modes.blip) modes.blip.startBlip();
       break;
     case 'mediapipe':
       if (modes.mediapipe) modes.mediapipe.startMediaPipe();
