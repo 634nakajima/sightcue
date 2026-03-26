@@ -1,14 +1,16 @@
 # SightCue
 
-3つのAIビジョンモードを1つに統合したデスクトップアプリ。OSC/Socket.IOで外部アプリにリアルタイム通知。
+カメラ映像をAIがリアルタイムに解析し、映像内のイベントをOSCで外部アプリケーションに通知するmacOSデスクトップアプリ。Pure Data、TouchDesigner、Max、Ableton等と連携して、インタラクティブな作品やライブパフォーマンスを実現します。
 
-## Modes
+## AI Engines
 
-| Mode | Engine | Python | Description |
-|------|--------|--------|-------------|
-| **BLIP Caption** | PyTorch MPS | Required | AI image captioning + text similarity triggers |
-| **MediaPipe Tracking** | WASM (browser) | Not needed | Hand/face landmark detection + gesture recognition |
-| **Teachable Machine** | TensorFlow.js (browser) | Not needed | Custom model inference on ROI regions |
+用途に応じて3つの画像認識AIを切り替えて使えます。
+
+| Engine | 概要 | Python |
+|--------|------|--------|
+| **BLIP Caption** | 映像をテキスト化し、登録した状況との類似度でトリガー発火 | 必要 |
+| **MediaPipe Tracking** | 手（21点 + ジェスチャー）・顔（32点）のランドマーク検出 | 不要 |
+| **Teachable Machine** | 自作モデルでROI領域ごとに画像分類 | 不要 |
 
 ## Quick Start
 
@@ -17,47 +19,46 @@ git clone https://github.com/634nakajima/sightcue.git
 cd sightcue
 npm install
 
-# BLIP mode requires Python
+# BLIP Captionを使う場合のみ
 cd python && pip install -r requirements.txt && cd ..
 
 npm start
 ```
 
-MediaPipe / Teachable Machine modes work without Python.
+MediaPipe / Teachable Machine はPython環境なしで動作します。
 
 ## Features
 
-- **Mode switching** - Switch between 3 AI vision modes with tab buttons
-- **ROI (Region of Interest)** - Draw multiple regions on camera for independent processing
-- **OSC output** - All modes send data via OSC to Pure Data, TouchDesigner, Max, Ableton, etc.
-- **Real-time monitor** - OSC monitor, similarity bars, caption log
-- **Apple Silicon optimized** - BLIP uses MPS, MediaPipe/TM use WebGPU/WASM
+- **ROI（関心領域）** - カメラ映像上に複数の領域を描画し、領域ごとに独立して処理
+- **OSC出力** - 全エンジンからOSCでリアルタイム通知
+- **リアルタイムモニター** - OSCメッセージ、類似度、キャプションをダッシュボード表示
+- **カメラ制御** - オン/オフ切替、複数カメラ対応
+- **Apple Silicon最適化** - BLIPはPyTorch MPS、MediaPipe/TMはWASMで高速推論
 
 ## OSC Address Format
 
-### BLIP Mode
+### BLIP Caption
 ```
-/vision/caption          [string]     Caption text
-/vision/trigger{N}       [float]      Trigger similarity (0-1)
-/vision/roi/{name}/caption    [string]
-/vision/roi/{name}/trigger{N} [float]
+/vision/caption              [string]    キャプションテキスト
+/vision/trigger{N}           [float]     トリガー類似度 (0-1)
+/vision/roi/{name}/caption   [string]    ROIごとのキャプション
+/vision/roi/{name}/trigger{N} [float]    ROIごとのトリガー類似度
 ```
 
-### MediaPipe Mode
+### MediaPipe Tracking
 ```
-/hand/{side}/{landmark}/x    [float 0-1]
+/hand/{side}/{landmark}/x    [float 0-1]  手のランドマーク
 /hand/{side}/{landmark}/y    [float 0-1]
-/hand/{side}/{landmark}/z    [float]
-/hand/{side}/gesture/index   [float 0-7]
-/face/{landmark}/x           [float 0-1]
+/hand/{side}/gesture/index   [float 0-7]  ジェスチャー種別
+/face/{landmark}/x           [float 0-1]  顔のランドマーク
 /face/{landmark}/y           [float 0-1]
 ```
 
-### Teachable Machine Mode
+### Teachable Machine
 ```
-/tm/roi/{name}/class         [string]    Top class name
-/tm/roi/{name}/confidence    [float]     Top class probability
-/tm/roi/{name}/prob/{i}      [string, float]  Per-class
+/tm/{name}/class             [string]    推論クラス名
+/tm/{name}/confidence        [float]     確信度
+/tm/{name}/prob/{i}          [string, float]  クラス別確率
 ```
 
 ## Tech Stack
