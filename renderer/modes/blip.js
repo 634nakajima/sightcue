@@ -393,12 +393,13 @@ function clearAllROIs() {
 function _addLogEntry(timestamp, text, suffix, isTrigger) {
   const log = els.captionLog || document.getElementById('caption-log');
   if (!log) return;
+  const ts = timestamp || '--';
   const entry = document.createElement('div');
   entry.className = 'log-entry';
   if (isTrigger) {
-    entry.innerHTML = `<span class="log-time">${timestamp}</span><span class="log-trigger">${text}</span>`;
+    entry.innerHTML = `<span class="log-time">${ts}</span><span class="log-trigger">${text}</span>`;
   } else {
-    entry.innerHTML = `<span class="log-time">${timestamp}</span>${text} <span style="color:#888">${suffix}</span>`;
+    entry.innerHTML = `<span class="log-time">${ts}</span>${text} <span style="color:#888">${suffix || ''}</span>`;
   }
   log.prepend(entry);
   while (log.children.length > 100) log.removeChild(log.lastChild);
