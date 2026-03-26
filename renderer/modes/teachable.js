@@ -154,7 +154,7 @@ async function _runInference() {
 
   const vw = video.videoWidth;
   const vh = video.videoHeight;
-  const oscPrefix = (els.oscPrefixInput && els.oscPrefixInput.value.trim()) || '/tm/roi';
+  const oscPrefix = (els.oscPrefixInput && els.oscPrefixInput.value.trim()) || '/tm';
 
   for (const roi of rois) {
     const sx = Math.round(roi.x * vw);
