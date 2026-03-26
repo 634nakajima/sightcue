@@ -12,6 +12,7 @@ mac:
     NSCameraUsageDescription: "This app needs camera access for real-time vision analysis and trigger detection."
 files:
   - main.js
+  - lib/**/*
   - renderer/**/*
   - package.json
   - node_modules/**/*
