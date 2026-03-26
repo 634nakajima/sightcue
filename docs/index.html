@@ -99,7 +99,8 @@
       border: 1px solid var(--border); transition: border-color 0.2s;
     }
     .feature:hover { border-color: var(--accent); }
-    .feature-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .feature-icon { margin-bottom: 0.75rem; color: var(--accent); }
+    .feature-icon svg { width: 32px; height: 32px; }
     .feature h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
     .feature p { font-size: 0.9rem; color: var(--text-dim); }
 
@@ -108,7 +109,8 @@
       padding: 1.25rem; border-radius: 10px; background: var(--surface);
       border: 1px solid var(--border); text-align: center;
     }
-    .usecase-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .usecase-icon { margin-bottom: 0.5rem; color: var(--accent); }
+    .usecase-icon svg { width: 28px; height: 28px; }
     .usecase h3 { font-size: 0.95rem; margin-bottom: 0.3rem; }
     .usecase p { font-size: 0.8rem; color: var(--text-dim); }
 
@@ -194,42 +196,42 @@
   <h2 lang="en"><em>Features</em></h2>
   <div class="features">
     <div class="feature">
-      <div class="feature-icon">🧠</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/><path d="M10 17v-2"/><path d="M14 17v-2"/></svg></div>
       <h3 lang="ja">AIキャプション生成</h3>
       <h3 lang="en">AI Captioning</h3>
       <p lang="ja">BLIPモデルがカメラ映像をリアルタイムに英語テキストに変換。Apple Silicon（MPS）で高速推論。</p>
       <p lang="en">BLIP model converts camera frames to English text in real-time. Fast inference on Apple Silicon (MPS).</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">🎯</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
       <h3 lang="ja">テキスト類似度トリガー</h3>
       <h3 lang="en">Text Similarity Triggers</h3>
       <p lang="ja">監視したい状況をテキストで登録。Sentence-Transformerでキャプションとの意味的類似度を計算し、閾値を超えたら発火。</p>
       <p lang="en">Register situations as text. Sentence-Transformer computes semantic similarity with captions and fires when threshold is exceeded.</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">🔲</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="3 2"/></svg></div>
       <h3 lang="ja">ROI（関心領域）</h3>
       <h3 lang="en">ROI (Region of Interest)</h3>
       <p lang="ja">カメラ映像上に複数のROIを描画。各領域を独立してキャプション生成・トリガー判定。</p>
       <p lang="en">Draw multiple ROIs on camera feed. Each region gets independent captioning and trigger evaluation.</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">📡</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
       <h3 lang="ja">OSC + Socket.IO出力</h3>
       <h3 lang="en">OSC + Socket.IO Output</h3>
       <p lang="ja">トリガー発火時にOSCとSocket.IOで外部アプリに通知。Pure Data、TouchDesigner、Max等と連携。</p>
       <p lang="en">Notify external apps via OSC and Socket.IO on trigger. Works with Pure Data, TouchDesigner, Max, etc.</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">📊</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 13V9"/><path d="M12 13V7"/><path d="M17 13v-2"/></svg></div>
       <h3 lang="ja">リアルタイムモニター</h3>
       <h3 lang="en">Real-time Monitor</h3>
       <p lang="ja">類似度バー、OSCモニター、キャプションログをダッシュボードでリアルタイム表示。閾値はドラッグで調整可能。</p>
       <p lang="en">Similarity bars, OSC monitor, and caption log displayed in real-time dashboard. Threshold adjustable by drag.</p>
     </div>
     <div class="feature">
-      <div class="feature-icon">⚡</div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
       <h3 lang="ja">MPS高速推論</h3>
       <h3 lang="en">MPS Acceleration</h3>
       <p lang="ja">PyTorch MPSバックエンドでApple Silicon GPUを活用。1フレームあたり約0.4秒で推論。</p>
@@ -246,28 +248,28 @@
   <p class="subtitle" lang="en">Example applications</p>
   <div class="usecases">
     <div class="usecase">
-      <div class="usecase-icon">🎭</div>
+      <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-4.97 0-9 3.58-9 8 0 1.5.5 2.87 1.35 4L3 21l4.5-2.5C8.8 19.5 10.35 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9z"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/></svg></div>
       <h3 lang="ja">インタラクティブアート</h3>
       <h3 lang="en">Interactive Art</h3>
       <p lang="ja">映像中の状況変化に応じて音響・照明を制御</p>
       <p lang="en">Control sound/lighting based on scene changes</p>
     </div>
     <div class="usecase">
-      <div class="usecase-icon">🎓</div>
+      <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
       <h3 lang="ja">研究プロトタイプ</h3>
       <h3 lang="en">Research Prototype</h3>
       <p lang="ja">クロスモーダル知覚実験のパイプライン構築</p>
       <p lang="en">Build cross-modal perception experiment pipelines</p>
     </div>
     <div class="usecase">
-      <div class="usecase-icon">🎵</div>
+      <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
       <h3 lang="ja">ライブパフォーマンス</h3>
       <h3 lang="en">Live Performance</h3>
       <p lang="ja">演者の動きをOSCでPure Data/Abletonに送信</p>
       <p lang="en">Send performer actions via OSC to Pure Data/Ableton</p>
     </div>
     <div class="usecase">
-      <div class="usecase-icon">🏠</div>
+      <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <h3 lang="ja">空間監視</h3>
       <h3 lang="en">Space Monitoring</h3>
       <p lang="ja">特定の状況を検知して通知・記録</p>
