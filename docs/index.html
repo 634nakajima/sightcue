@@ -63,7 +63,7 @@
       line-height: 1.2; margin-bottom: 1rem;
     }
     .hero h1 em { font-style: normal; color: var(--accent); }
-    .hero p { font-size: 1.1rem; color: var(--text-dim); max-width: 600px; margin-bottom: 2rem; }
+    .hero p { font-size: 1.1rem; color: var(--text-dim); max-width: 650px; margin-bottom: 2rem; }
     .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
     .btn {
       padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 600;
@@ -79,17 +79,30 @@
     section h2 em { font-style: normal; color: var(--accent); }
     section .subtitle { color: var(--text-dim); margin-bottom: 2.5rem; font-size: 1rem; }
 
-    .flow {
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      flex-wrap: wrap; margin: 2rem 0; font-family: 'SF Mono', monospace; font-size: 0.85rem;
+    /* Modes */
+    .modes-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem; margin-top: 2rem;
     }
-    .flow-box {
-      padding: 0.6rem 1.2rem; border-radius: 8px; background: var(--surface2);
-      border: 1px solid var(--border); white-space: nowrap;
+    .mode-card {
+      padding: 2rem; border-radius: 12px; background: var(--surface);
+      border: 1px solid var(--border); transition: border-color 0.2s;
     }
-    .flow-box.highlight { border-color: var(--accent); color: var(--accent); }
-    .flow-arrow { color: var(--text-dim); font-size: 1.2rem; }
+    .mode-card:hover { border-color: var(--accent); }
+    .mode-card .mode-icon { margin-bottom: 1rem; color: var(--accent); }
+    .mode-card .mode-icon svg { width: 36px; height: 36px; }
+    .mode-card h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+    .mode-card .mode-tag {
+      display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 600; margin-bottom: 0.75rem;
+    }
+    .mode-card .tag-python { background: rgba(0,184,148,0.15); color: var(--accent2); }
+    .mode-card .tag-browser { background: rgba(253,203,110,0.15); color: var(--accent3); }
+    .mode-card p { font-size: 0.9rem; color: var(--text-dim); }
+    .mode-card ul { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.5rem; padding-left: 1.2rem; }
+    .mode-card li { margin-bottom: 0.25rem; }
 
+    /* Features */
     .features {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.5rem; margin-top: 2rem;
@@ -153,89 +166,104 @@
   <h1 lang="ja"><em>SightCue</em></h1>
   <h1 lang="en"><em>SightCue</em></h1>
   <p lang="ja">
-    Webカメラの映像をAIがリアルタイムにテキスト化し、
-    あらかじめ登録した状況が発生したらOSC/Socket.IOで外部アプリに通知するプラットフォーム。
-    ROI（関心領域）を自由に設定でき、領域ごとの状況監視が可能です。
+    3つのAIビジョンモードを1つに統合。
+    BLIPキャプション、MediaPipeトラッキング、Teachable Machine推論を切り替えて使え、
+    OSC/Socket.IOで外部アプリにリアルタイム通知するプラットフォーム。
   </p>
   <p lang="en">
-    An AI-powered platform that converts webcam footage to text in real-time using BLIP,
-    and triggers OSC/Socket.IO notifications when registered situations are detected.
-    Supports multiple ROI (Region of Interest) zones for independent monitoring.
+    Three AI vision modes in one app.
+    Switch between BLIP captioning, MediaPipe tracking, and Teachable Machine inference,
+    with real-time OSC/Socket.IO output to external applications.
   </p>
   <div class="hero-buttons">
-    <a class="btn btn-primary" href="https://github.com/nakashimatakuro/sightcue/releases">
+    <a class="btn btn-primary" href="https://github.com/634nakajima/sightcue/releases">
       <span lang="ja">ダウンロード (.dmg)</span>
       <span lang="en">Download (.dmg)</span>
     </a>
-    <a class="btn btn-secondary" href="https://github.com/nakashimatakuro/sightcue">GitHub</a>
+    <a class="btn btn-secondary" href="https://github.com/634nakajima/sightcue">GitHub</a>
   </div>
 </div>
 
-<!-- Architecture -->
+<!-- Modes -->
 <section>
-  <h2 lang="ja"><em>Architecture</em></h2>
-  <h2 lang="en"><em>Architecture</em></h2>
-  <p class="subtitle" lang="ja">映像からアクションまでのデータフロー</p>
-  <p class="subtitle" lang="en">Data flow from camera to action</p>
-  <div class="flow">
-    <div class="flow-box">Webcam</div>
-    <span class="flow-arrow">&rarr;</span>
-    <div class="flow-box">ROI Crop</div>
-    <span class="flow-arrow">&rarr;</span>
-    <div class="flow-box highlight">BLIP Caption</div>
-    <span class="flow-arrow">&rarr;</span>
-    <div class="flow-box highlight">Embedding Similarity</div>
-    <span class="flow-arrow">&rarr;</span>
-    <div class="flow-box">OSC / Socket.IO</div>
+  <h2 lang="ja"><em>3 Modes</em></h2>
+  <h2 lang="en"><em>3 Modes</em></h2>
+  <p class="subtitle" lang="ja">タブ切り替えで3つのAIビジョンモードを使い分け</p>
+  <p class="subtitle" lang="en">Switch between three AI vision modes with a single click</p>
+  <div class="modes-grid">
+    <div class="mode-card">
+      <div class="mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/></svg></div>
+      <h3>BLIP Caption</h3>
+      <span class="mode-tag tag-python">Python + PyTorch MPS</span>
+      <p lang="ja">カメラ映像をAIがリアルタイムにテキスト化。登録した状況との意味的類似度を計算し、閾値を超えるとトリガー発火。</p>
+      <p lang="en">Real-time AI image captioning. Computes semantic similarity with registered triggers and fires when threshold is exceeded.</p>
+      <ul>
+        <li lang="ja">BLIP + Sentence-Transformers</li><li lang="en">BLIP + Sentence-Transformers</li>
+        <li lang="ja">ROI対応（領域ごとの独立判定）</li><li lang="en">ROI support (independent per-region)</li>
+        <li lang="ja">テキスト類似度トリガー</li><li lang="en">Text similarity triggers</li>
+      </ul>
+    </div>
+    <div class="mode-card">
+      <div class="mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v9"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/></svg></div>
+      <h3>MediaPipe Tracking</h3>
+      <span class="mode-tag tag-browser">Browser (WASM)</span>
+      <p lang="ja">手（21ランドマーク/手、8ジェスチャー）と顔（32ランドマーク）をリアルタイム検出。Python不要。</p>
+      <p lang="en">Real-time hand (21 landmarks, 8 gestures) and face (32 landmarks) tracking. No Python required.</p>
+      <ul>
+        <li lang="ja">手トラッキング + ジェスチャー認識</li><li lang="en">Hand tracking + gesture recognition</li>
+        <li lang="ja">顔ランドマーク検出</li><li lang="en">Face landmark detection</li>
+        <li lang="ja">スムージング調整</li><li lang="en">Smoothing control</li>
+      </ul>
+    </div>
+    <div class="mode-card">
+      <div class="mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <h3>Teachable Machine</h3>
+      <span class="mode-tag tag-browser">Browser (TensorFlow.js)</span>
+      <p lang="ja">Google Teachable Machineで学習したカスタムモデルをROIごとに推論。Python不要。</p>
+      <p lang="en">Run custom Teachable Machine models on each ROI region. No Python required.</p>
+      <ul>
+        <li lang="ja">URL / ZIPからモデルロード</li><li lang="en">Load models from URL or ZIP</li>
+        <li lang="ja">ROIごとの独立推論</li><li lang="en">Independent inference per ROI</li>
+        <li lang="ja">クラス名・確信度をOSC送信</li><li lang="en">Send class + confidence via OSC</li>
+      </ul>
+    </div>
   </div>
 </section>
 
-<!-- Features -->
+<!-- Shared Features -->
 <section>
-  <h2 lang="ja"><em>Features</em></h2>
-  <h2 lang="en"><em>Features</em></h2>
+  <h2 lang="ja"><em>Shared Features</em></h2>
+  <h2 lang="en"><em>Shared Features</em></h2>
+  <p class="subtitle" lang="ja">全モード共通の機能</p>
+  <p class="subtitle" lang="en">Features available across all modes</p>
   <div class="features">
-    <div class="feature">
-      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/><path d="M10 17v-2"/><path d="M14 17v-2"/></svg></div>
-      <h3 lang="ja">AIキャプション生成</h3>
-      <h3 lang="en">AI Captioning</h3>
-      <p lang="ja">BLIPモデルがカメラ映像をリアルタイムに英語テキストに変換。Apple Silicon（MPS）で高速推論。</p>
-      <p lang="en">BLIP model converts camera frames to English text in real-time. Fast inference on Apple Silicon (MPS).</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-      <h3 lang="ja">テキスト類似度トリガー</h3>
-      <h3 lang="en">Text Similarity Triggers</h3>
-      <p lang="ja">監視したい状況をテキストで登録。Sentence-Transformerでキャプションとの意味的類似度を計算し、閾値を超えたら発火。</p>
-      <p lang="en">Register situations as text. Sentence-Transformer computes semantic similarity with captions and fires when threshold is exceeded.</p>
-    </div>
     <div class="feature">
       <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="3 2"/></svg></div>
       <h3 lang="ja">ROI（関心領域）</h3>
       <h3 lang="en">ROI (Region of Interest)</h3>
-      <p lang="ja">カメラ映像上に複数のROIを描画。各領域を独立してキャプション生成・トリガー判定。</p>
-      <p lang="en">Draw multiple ROIs on camera feed. Each region gets independent captioning and trigger evaluation.</p>
+      <p lang="ja">カメラ映像上に複数のROIを描画。BLIP/TMモードで各領域を独立して処理。</p>
+      <p lang="en">Draw multiple ROIs on camera feed. Each region processed independently in BLIP/TM modes.</p>
     </div>
     <div class="feature">
       <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-      <h3 lang="ja">OSC + Socket.IO出力</h3>
-      <h3 lang="en">OSC + Socket.IO Output</h3>
-      <p lang="ja">トリガー発火時にOSCとSocket.IOで外部アプリに通知。Pure Data、TouchDesigner、Max等と連携。</p>
-      <p lang="en">Notify external apps via OSC and Socket.IO on trigger. Works with Pure Data, TouchDesigner, Max, etc.</p>
+      <h3 lang="ja">OSC出力</h3>
+      <h3 lang="en">OSC Output</h3>
+      <p lang="ja">全モードからOSCで外部アプリに通知。Pure Data、TouchDesigner、Max、Ableton等と連携。</p>
+      <p lang="en">All modes send OSC to external apps. Works with Pure Data, TouchDesigner, Max, Ableton, etc.</p>
     </div>
     <div class="feature">
       <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 13V9"/><path d="M12 13V7"/><path d="M17 13v-2"/></svg></div>
       <h3 lang="ja">リアルタイムモニター</h3>
       <h3 lang="en">Real-time Monitor</h3>
-      <p lang="ja">類似度バー、OSCモニター、キャプションログをダッシュボードでリアルタイム表示。閾値はドラッグで調整可能。</p>
-      <p lang="en">Similarity bars, OSC monitor, and caption log displayed in real-time dashboard. Threshold adjustable by drag.</p>
+      <p lang="ja">OSCモニター、ログ、類似度バーをダッシュボードでリアルタイム表示。</p>
+      <p lang="en">OSC monitor, log, and similarity bars displayed in real-time dashboard.</p>
     </div>
     <div class="feature">
       <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-      <h3 lang="ja">MPS高速推論</h3>
-      <h3 lang="en">MPS Acceleration</h3>
-      <p lang="ja">PyTorch MPSバックエンドでApple Silicon GPUを活用。1フレームあたり約0.4秒で推論。</p>
-      <p lang="en">Leverages Apple Silicon GPU via PyTorch MPS backend. ~0.4s inference per frame.</p>
+      <h3 lang="ja">Apple Silicon最適化</h3>
+      <h3 lang="en">Apple Silicon Optimized</h3>
+      <p lang="ja">BLIPモードはPyTorch MPS、MediaPipe/TMはWebGPU/WASMで高速推論。</p>
+      <p lang="en">BLIP uses PyTorch MPS, MediaPipe/TM use WebGPU/WASM for fast inference.</p>
     </div>
   </div>
 </section>
@@ -265,15 +293,15 @@
       <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
       <h3 lang="ja">ライブパフォーマンス</h3>
       <h3 lang="en">Live Performance</h3>
-      <p lang="ja">演者の動きをOSCでPure Data/Abletonに送信</p>
-      <p lang="en">Send performer actions via OSC to Pure Data/Ableton</p>
+      <p lang="ja">手や顔のトラッキングでPd/Abletonを制御</p>
+      <p lang="en">Control Pd/Ableton with hand/face tracking</p>
     </div>
     <div class="usecase">
       <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <h3 lang="ja">空間監視</h3>
       <h3 lang="en">Space Monitoring</h3>
-      <p lang="ja">特定の状況を検知して通知・記録</p>
-      <p lang="en">Detect specific situations and notify/log</p>
+      <p lang="ja">カスタムモデルで特定の物体・状況を検知</p>
+      <p lang="en">Detect specific objects/situations with custom models</p>
     </div>
   </div>
 </section>
@@ -285,16 +313,18 @@
   <div class="setup">
     <p lang="ja"><strong>方法1:</strong> ビルド済みアプリをダウンロード</p>
     <p lang="en"><strong>Option 1:</strong> Download pre-built app</p>
-    <p lang="ja"><a href="https://github.com/nakashimatakuro/sightcue/releases" style="color:var(--accent)">Releases</a> から .dmg をダウンロードして起動するだけ。</p>
-    <p lang="en">Download .dmg from <a href="https://github.com/nakashimatakuro/sightcue/releases" style="color:var(--accent)">Releases</a> and launch.</p>
+    <p lang="ja"><a href="https://github.com/634nakajima/sightcue/releases" style="color:var(--accent)">Releases</a> から .dmg をダウンロードして起動するだけ。</p>
+    <p lang="en">Download .dmg from <a href="https://github.com/634nakajima/sightcue/releases" style="color:var(--accent)">Releases</a> and launch.</p>
 
     <p lang="ja" style="margin-top:1.5rem"><strong>方法2:</strong> ソースから実行</p>
     <p lang="en" style="margin-top:1.5rem"><strong>Option 2:</strong> Run from source</p>
-    <code>git clone https://github.com/nakashimatakuro/sightcue.git
+    <code>git clone https://github.com/634nakajima/sightcue.git
 cd sightcue
 npm install
 cd python && pip install -r requirements.txt && cd ..
 npm start</code>
+    <p lang="ja" style="margin-top:0.5rem; font-size:0.8rem">※ BLIPモードを使う場合のみPython環境が必要です。MediaPipe/TMモードはPython不要。</p>
+    <p lang="en" style="margin-top:0.5rem; font-size:0.8rem">* Python environment only needed for BLIP mode. MediaPipe/TM modes work without Python.</p>
   </div>
 
   <div class="tech-list">
@@ -303,14 +333,16 @@ npm start</code>
     <span class="tech-tag">PyTorch MPS</span>
     <span class="tech-tag">BLIP</span>
     <span class="tech-tag">Sentence-Transformers</span>
-    <span class="tech-tag">Flask-SocketIO</span>
+    <span class="tech-tag">MediaPipe</span>
+    <span class="tech-tag">TensorFlow.js</span>
     <span class="tech-tag">OSC</span>
+    <span class="tech-tag">Socket.IO</span>
   </div>
 </section>
 
 <footer>
   <p>SightCue &mdash; MIT License</p>
-  <p><a href="https://github.com/nakashimatakuro/sightcue">GitHub</a></p>
+  <p><a href="https://github.com/634nakajima/sightcue">GitHub</a></p>
 </footer>
 
 <script>
