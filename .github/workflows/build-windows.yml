@@ -1,0 +1,66 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          cd python
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build Python backend
+        run: |
+          cd python
+          pyinstaller --onedir --name vision-backend --distpath "${{ github.workspace }}/release/python-backend" --workpath "${{ github.workspace }}/release/python-build" --specpath "${{ github.workspace }}/release" --noconfirm --collect-all torch --collect-all transformers --collect-all sentence_transformers --collect-all tokenizers --hidden-import=flask --hidden-import=flask_socketio --hidden-import=engineio.async_drivers.threading --add-data "config.yaml;." run.py
+          mkdir -p "${{ github.workspace }}/release/python-backend/vision-backend/data"
+        shell: bash
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Build Electron app
+        run: npx electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release artifacts
+        run: ls -la release/
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sightcue-windows
+          path: |
+            release/*.exe
+            release/*.msi
+          if-no-files-found: warn
+
+      - name: Upload to release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

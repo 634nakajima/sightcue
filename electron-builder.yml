@@ -10,6 +10,14 @@ mac:
   forceCodeSigning: false
   extendInfo:
     NSCameraUsageDescription: "This app needs camera access for real-time vision analysis and trigger detection."
+win:
+  target:
+    - nsis
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icon.ico
 files:
   - main.js
   - lib/**/*
