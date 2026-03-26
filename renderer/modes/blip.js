@@ -407,6 +407,9 @@ function updateROIList() {
       renameROI(r.id, nameInput.value);
       nameInput.value = r.name;
     });
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') nameInput.blur();
+    });
 
     const btn = document.createElement('button');
     btn.textContent = 'Remove';

@@ -281,6 +281,9 @@ function _updateROIList() {
       oscMonitor.clearMonitor();
       _drawROIsWithResults();
     });
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') nameInput.blur();
+    });
 
     // Remove button
     div.querySelector('.btn-remove-roi').addEventListener('click', () => {
