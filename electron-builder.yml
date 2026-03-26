@@ -13,11 +13,9 @@ mac:
 win:
   target:
     - nsis
-  icon: resources/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  installerIcon: resources/icon.ico
 files:
   - main.js
   - lib/**/*
