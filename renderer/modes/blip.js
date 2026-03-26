@@ -37,7 +37,7 @@ function initBlip(elements) {
   setOnROIChanged(updateROIList);
 
   // Expose global functions
-  window.blipToggle = togglePipeline;
+  // togglePipeline removed - auto-start on tab switch
   window.blipAddTrigger = addTrigger;
   window.blipRemoveTrigger = removeTriggerById;
   window.blipRemoveROI = removeROIById;
@@ -49,9 +49,37 @@ function startBlip() {
   setOnROIChanged(updateROIList);
   updateROIList();
 
-  // Connect socket.io to Python backend (lazy start Python first)
+  // Auto-start: lazy start Python → connect socket → start pipeline
   if (!socket) {
-    _connectSocket();
+    if (els.loadingMsg) {
+      els.loadingMsg.style.display = 'inline';
+      els.loadingMsg.textContent = 'Starting Python backend...';
+    }
+    pipelineLoading = true;
+
+    ipcRenderer.invoke('python:start').then(() => {
+      _connectSocket();
+      setTimeout(() => {
+        if (socket) {
+          if (els.loadingMsg) {
+            els.loadingMsg.textContent = 'Loading models... (first time may take a few minutes)';
+          }
+          socket.emit('pipeline:start');
+        }
+      }, 1000);
+    }).catch(err => {
+      console.error('[BLIP] Failed to start Python:', err);
+      pipelineLoading = false;
+      if (els.loadingMsg) els.loadingMsg.style.display = 'none';
+    });
+  } else if (!pipelineRunning && !pipelineLoading) {
+    // Socket exists but pipeline not running - restart it
+    pipelineLoading = true;
+    if (els.loadingMsg) {
+      els.loadingMsg.style.display = 'inline';
+      els.loadingMsg.textContent = 'Loading models...';
+    }
+    socket.emit('pipeline:start');
   }
 }
 
@@ -73,11 +101,6 @@ function stopBlip() {
   pipelineRunning = false;
   pipelineLoading = false;
 
-  if (els.btnToggle) {
-    els.btnToggle.textContent = 'Start';
-    els.btnToggle.className = '';
-    els.btnToggle.disabled = false;
-  }
   if (els.loadingMsg) {
     els.loadingMsg.style.display = 'none';
   }
@@ -105,7 +128,6 @@ function _connectSocket() {
 
     if (pipelineLoading) {
       pipelineLoading = false;
-      if (els.btnToggle) els.btnToggle.disabled = false;
       if (els.loadingMsg) els.loadingMsg.style.display = 'none';
     }
   });
@@ -131,10 +153,6 @@ function _connectSocket() {
   socket.on('status:update', (status) => {
     pipelineRunning = status.running;
 
-    if (els.btnToggle) {
-      els.btnToggle.textContent = status.running ? 'Stop' : 'Start';
-      els.btnToggle.className = status.running ? 'running' : '';
-    }
 
     // Info fields in settings
     const stDevice = document.getElementById('st-device');
@@ -145,7 +163,6 @@ function _connectSocket() {
     if (stInference) stInference.textContent = `${status.inference_duration}s/frame`;
 
     if (status.models_loaded || !status.running) {
-      if (els.btnToggle) els.btnToggle.disabled = false;
       pipelineLoading = false;
       if (els.loadingMsg) els.loadingMsg.style.display = 'none';
     }
@@ -173,52 +190,6 @@ function _connectSocket() {
   socket.emit('status:request');
 }
 
-// --- Pipeline Control ---
-function togglePipeline() {
-  if (pipelineLoading) return;
-
-  // Lazy-start Python backend
-  if (!socket) {
-    pipelineLoading = true;
-    if (els.btnToggle) els.btnToggle.disabled = true;
-    if (els.loadingMsg) {
-      els.loadingMsg.style.display = 'inline';
-      els.loadingMsg.textContent = 'Starting Python backend...';
-    }
-
-    ipcRenderer.invoke('python:start').then(() => {
-      _connectSocket();
-      // Now start pipeline
-      setTimeout(() => {
-        if (socket) {
-          if (els.loadingMsg) {
-            els.loadingMsg.textContent = 'Loading models... (first time may take a few minutes)';
-          }
-          socket.emit('pipeline:start');
-        }
-      }, 1000);
-    }).catch(err => {
-      console.error('[BLIP] Failed to start Python:', err);
-      pipelineLoading = false;
-      if (els.btnToggle) els.btnToggle.disabled = false;
-      if (els.loadingMsg) els.loadingMsg.style.display = 'none';
-    });
-    return;
-  }
-
-  if (pipelineRunning) {
-    socket.emit('pipeline:stop');
-    stopCapture();
-  } else {
-    pipelineLoading = true;
-    if (els.btnToggle) els.btnToggle.disabled = true;
-    if (els.loadingMsg) {
-      els.loadingMsg.style.display = 'inline';
-      els.loadingMsg.textContent = 'Loading models... (first time may take a few minutes)';
-    }
-    socket.emit('pipeline:start');
-  }
-}
 
 function _startCapture() {
   stopCapture();

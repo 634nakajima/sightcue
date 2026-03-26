@@ -106,11 +106,7 @@
       <!-- BLIP Mode Panel -->
       <div class="mode-panel mode-blip">
         <div class="panel">
-          <div class="mode-panel-header">
-            <h2>Pipeline</h2>
-            <button id="btn-toggle" onclick="window.blipToggle()">Start</button>
-            <span id="loading-msg" class="loading-msg" style="display:none">Loading models...</span>
-          </div>
+          <span id="loading-msg" class="loading-msg" style="display:none">Loading models...</span>
         </div>
         <div class="panel">
           <h2>Triggers</h2>
@@ -279,7 +275,6 @@
       // Init all modes (but only BLIP is active at start)
       blipMode.initBlip({
         video, overlay,
-        btnToggle: document.getElementById('btn-toggle'),
         loadingMsg: document.getElementById('loading-msg'),
         captionDisplay: document.getElementById('current-caption'),
         triggerDesc: document.getElementById('trigger-desc'),
