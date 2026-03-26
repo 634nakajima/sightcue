@@ -1,5 +1,5 @@
-appId: com.vision-trigger-platform.app
-productName: Vision Trigger Platform
+appId: com.sightcue.app
+productName: SightCue
 directories:
   output: release
 mac:

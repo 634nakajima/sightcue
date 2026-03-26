@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Vision Trigger Platform - Python Backend"""
+"""SightCue - Python Backend"""
 
 import sys
 
@@ -13,7 +13,7 @@ from app.server import create_app
 
 def main():
     print("=" * 50)
-    print("  Vision Trigger Platform - Backend")
+    print("  SightCue - Backend")
     print("=" * 50)
 
     config = load_config("config.yaml")

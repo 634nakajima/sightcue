@@ -1,12 +1,12 @@
 {
-  "name": "vision-trigger-platform",
+  "name": "sightcue",
   "version": "1.0.0",
   "description": "Real-time vision-based trigger platform with ROI support",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build:python": "bash scripts/build-python.sh",
-    "build:mac": "npm run build:python && electron-builder --mac && bash scripts/sign-mac.sh 'release/mac-arm64/Vision Trigger Platform.app' && bash scripts/create-dmg.sh",
+    "build:mac": "npm run build:python && electron-builder --mac && bash scripts/sign-mac.sh 'release/mac-arm64/SightCue.app' && bash scripts/create-dmg.sh",
     "build:win": "electron-builder --win"
   },
   "dependencies": {
