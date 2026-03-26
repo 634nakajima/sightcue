@@ -4,7 +4,7 @@
 const { ipcRenderer } = require('electron');
 const io = require('socket.io-client');
 const { captureFrame } = require('../camera');
-const { getROIs, getROICrops, removeROI, clearROIs, setROICaption, setOnROIChanged, drawROIs } = require('../roi');
+const { getROIs, getROICrops, removeROI, clearROIs, renameROI, setROICaption, setOnROIChanged, drawROIs } = require('../roi');
 const oscMonitor = require('../osc-monitor');
 
 const PYTHON_PORT = 5555;
@@ -387,10 +387,33 @@ function updateROIList() {
   els.roiList.innerHTML = '';
   rois.forEach(r => {
     const li = document.createElement('li');
-    li.innerHTML = `
-      <span class="trigger-desc" style="color:${r.color}">${r.name}</span>
-      <button onclick="blipRemoveROI(${r.id})">Remove</button>
-    `;
+    li.style.display = 'flex';
+    li.style.alignItems = 'center';
+    li.style.gap = '8px';
+
+    const dot = document.createElement('span');
+    dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${r.color};flex-shrink:0`;
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = r.name;
+    nameInput.spellcheck = false;
+    nameInput.style.cssText = 'flex:1;background:#16213e;border:1px solid #0f3460;color:#e0e0e0;padding:3px 6px;border-radius:4px;font-size:12px';
+    nameInput.addEventListener('change', () => {
+      renameROI(r.id, nameInput.value);
+      nameInput.value = r.name;
+    });
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Remove';
+    btn.addEventListener('click', () => {
+      removeROI(r.id);
+      updateROIList();
+    });
+
+    li.appendChild(dot);
+    li.appendChild(nameInput);
+    li.appendChild(btn);
     els.roiList.appendChild(li);
   });
 }

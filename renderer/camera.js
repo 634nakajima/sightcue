@@ -28,13 +28,14 @@ async function startCamera(deviceId, video) {
   return { width: video.videoWidth, height: video.videoHeight };
 }
 
-function stopCamera() {
+function stopCamera(video) {
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
   }
-  if (videoElement) {
-    videoElement.srcObject = null;
+  const v = video || videoElement;
+  if (v) {
+    v.srcObject = null;
   }
 }
 

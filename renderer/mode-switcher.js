@@ -1,13 +1,12 @@
 // Mode switcher: manages transitions between BLIP, MediaPipe, Teachable Machine
 const roi = require('./roi');
 
-let currentMode = 'blip'; // 'blip' | 'mediapipe' | 'teachable'
-let modes = {}; // { blip, mediapipe, teachable }
+let currentMode = 'blip';
+let modes = {};
 
 function init(modeModules) {
   modes = modeModules;
 
-  // Bind tab buttons
   const tabs = document.querySelectorAll('.mode-tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -24,7 +23,6 @@ function switchMode(newMode) {
     return;
   }
 
-  // Stop current mode
   _stopCurrentMode();
 
   const prevMode = currentMode;
@@ -42,7 +40,7 @@ function switchMode(newMode) {
   const activePanel = document.querySelector('.mode-panel.mode-' + newMode);
   if (activePanel) activePanel.style.display = '';
 
-  // Show/hide mode-specific settings sections
+  // Settings sections
   document.querySelectorAll('.settings-blip-only').forEach(el => {
     el.style.display = newMode === 'blip' ? '' : 'none';
   });
@@ -53,32 +51,30 @@ function switchMode(newMode) {
     el.style.display = newMode === 'teachable' ? '' : 'none';
   });
 
-  // Show/hide caption display (BLIP only)
+  // Caption display (BLIP only)
   const captionDisplay = document.getElementById('current-caption');
   if (captionDisplay) {
     captionDisplay.style.display = newMode === 'blip' ? '' : 'none';
   }
 
-  // ROI interaction: enable for BLIP and Teachable, disable for MediaPipe
+  // ROI: switch set and constraint per mode
   const overlay = document.getElementById('roi-overlay');
-  if (overlay) {
-    overlay.style.pointerEvents = newMode === 'mediapipe' ? 'none' : 'auto';
-  }
-
-  // Clear canvas overlay when switching away from mediapipe
-  if (prevMode === 'mediapipe' && newMode !== 'mediapipe') {
-    roi.drawROIs();
+  if (newMode === 'mediapipe') {
+    // MediaPipe: no ROI
+    if (overlay) overlay.style.pointerEvents = 'none';
+    // Clear overlay for MediaPipe drawing
+    const ctx = overlay && overlay.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+  } else if (newMode === 'blip') {
+    if (overlay) overlay.style.pointerEvents = 'auto';
+    roi.switchROIMode('blip', 'free');
+  } else if (newMode === 'teachable') {
+    if (overlay) overlay.style.pointerEvents = 'auto';
+    roi.switchROIMode('teachable', 'square');
   }
 
   // Start new mode
   _startNewMode(newMode);
-
-  // Update status
-  const statusEl = document.getElementById('mode-status');
-  if (statusEl) {
-    const labels = { blip: 'BLIP Caption', mediapipe: 'MediaPipe Tracking', teachable: 'Teachable Machine' };
-    statusEl.textContent = labels[newMode] || '';
-  }
 }
 
 function _stopCurrentMode() {

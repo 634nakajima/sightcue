@@ -64,7 +64,6 @@ function initTeachable(elements) {
 
 function startTeachable() {
   active = true;
-  console.log('[TM] startTeachable called, model=', !!model);
   // Set the ROI change callback to our handler
   setOnROIChanged(_onROIChanged);
   _updateROIList();
@@ -145,23 +144,13 @@ async function _loadModelFromBase(base, useCache) {
 
 // --- Inference ---
 async function _runInference() {
-  if (!model || !active) {
-    console.log('[TM] Skipping: model=', !!model, 'active=', active);
-    return;
-  }
+  if (!model || !active) return;
 
   const rois = getROIs();
-  if (rois.length === 0) {
-    console.log('[TM] No ROIs');
-    return;
-  }
+  if (rois.length === 0) return;
 
   const video = els.video;
-  if (!video || !video.videoWidth || !video.videoHeight) {
-    console.log('[TM] Video not ready:', video?.videoWidth, video?.videoHeight);
-    return;
-  }
-  console.log('[TM] Running inference on', rois.length, 'ROIs');
+  if (!video || !video.videoWidth || !video.videoHeight) return;
 
   const vw = video.videoWidth;
   const vh = video.videoHeight;
@@ -319,19 +308,13 @@ function _drawROIsWithResults() {
 
 function _restartInference() {
   if (inferenceTimer) clearInterval(inferenceTimer);
-  if (!active) {
-    console.log('[TM] _restartInference: not active');
-    return;
-  }
+  if (!active) return;
 
   const interval = (els.inferenceIntervalInput && parseInt(els.inferenceIntervalInput.value)) || 200;
   const rois = getROIs();
 
-  console.log('[TM] _restartInference: model=', !!model, 'rois=', rois.length, 'interval=', interval);
-
   if (model && rois.length > 0) {
     inferenceTimer = setInterval(_runInference, interval);
-    console.log('[TM] Inference timer started');
   }
 }
 

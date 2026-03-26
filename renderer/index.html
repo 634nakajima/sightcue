@@ -16,6 +16,10 @@
     </div>
     <div class="controls">
       <select id="camera-select"></select>
+      <button id="btn-camera-toggle" class="btn-camera" title="Camera On/Off">
+        <svg id="camera-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <svg id="camera-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
       <button class="btn-settings" onclick="toggleSettings()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
@@ -246,12 +250,36 @@
         roi.resizeOverlay();
       });
 
+      let cameraRunning = false;
       if (cameras.length > 0) {
         await startCamera(cameras[0].deviceId, video);
+        cameraRunning = true;
       }
+
+      // Camera on/off button
+      const btnCameraToggle = document.getElementById('btn-camera-toggle');
+      const iconOn = document.getElementById('camera-icon-on');
+      const iconOff = document.getElementById('camera-icon-off');
+      btnCameraToggle.addEventListener('click', async () => {
+        if (cameraRunning) {
+          stopCamera(video);
+          cameraRunning = false;
+          iconOn.style.display = 'none';
+          iconOff.style.display = '';
+          btnCameraToggle.classList.add('camera-off');
+        } else {
+          await startCamera(select.value || cameras[0]?.deviceId, video);
+          cameraRunning = true;
+          iconOn.style.display = '';
+          iconOff.style.display = 'none';
+          btnCameraToggle.classList.remove('camera-off');
+          roi.resizeOverlay();
+        }
+      });
 
       // Init ROI overlay
       roi.initROI(overlay, video);
+      roi.switchROIMode('blip', 'free'); // default: BLIP with free aspect
       video.addEventListener('loadedmetadata', roi.resizeOverlay);
       window.addEventListener('resize', roi.resizeOverlay);
       setTimeout(roi.resizeOverlay, 500);
