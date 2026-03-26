@@ -106,9 +106,6 @@
       <!-- BLIP Mode Panel -->
       <div class="mode-panel mode-blip">
         <div class="panel">
-          <span id="loading-msg" class="loading-msg" style="display:none">Loading models...</span>
-        </div>
-        <div class="panel">
           <h2>Triggers</h2>
           <div class="trigger-form">
             <input type="text" id="trigger-desc" placeholder="Situation to watch for..." />
@@ -275,7 +272,6 @@
       // Init all modes (but only BLIP is active at start)
       blipMode.initBlip({
         video, overlay,
-        loadingMsg: document.getElementById('loading-msg'),
         captionDisplay: document.getElementById('current-caption'),
         triggerDesc: document.getElementById('trigger-desc'),
         triggerThreshold: document.getElementById('trigger-threshold'),

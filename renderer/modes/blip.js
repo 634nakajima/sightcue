@@ -51,34 +51,25 @@ function startBlip() {
 
   // Auto-start: lazy start Python → connect socket → start pipeline
   if (!socket) {
-    if (els.loadingMsg) {
-      els.loadingMsg.style.display = 'inline';
-      els.loadingMsg.textContent = 'Starting Python backend...';
-    }
+    _addLogEntry(null, 'Starting Python backend...', '', false);
     pipelineLoading = true;
 
     ipcRenderer.invoke('python:start').then(() => {
       _connectSocket();
       setTimeout(() => {
         if (socket) {
-          if (els.loadingMsg) {
-            els.loadingMsg.textContent = 'Loading models... (first time may take a few minutes)';
-          }
+          _addLogEntry(null, 'Loading AI models... (first time may take a few minutes)', '', false);
           socket.emit('pipeline:start');
         }
       }, 1000);
     }).catch(err => {
       console.error('[BLIP] Failed to start Python:', err);
       pipelineLoading = false;
-      if (els.loadingMsg) els.loadingMsg.style.display = 'none';
+      _addLogEntry(null, 'Failed to start Python backend', '', false);
     });
   } else if (!pipelineRunning && !pipelineLoading) {
-    // Socket exists but pipeline not running - restart it
     pipelineLoading = true;
-    if (els.loadingMsg) {
-      els.loadingMsg.style.display = 'inline';
-      els.loadingMsg.textContent = 'Loading models...';
-    }
+    _addLogEntry(null, 'Loading AI models...', '', false);
     socket.emit('pipeline:start');
   }
 }
@@ -101,9 +92,6 @@ function stopBlip() {
   pipelineRunning = false;
   pipelineLoading = false;
 
-  if (els.loadingMsg) {
-    els.loadingMsg.style.display = 'none';
-  }
 }
 
 function setCaptureInterval(val) {
@@ -128,7 +116,6 @@ function _connectSocket() {
 
     if (pipelineLoading) {
       pipelineLoading = false;
-      if (els.loadingMsg) els.loadingMsg.style.display = 'none';
     }
   });
 
@@ -164,7 +151,6 @@ function _connectSocket() {
 
     if (status.models_loaded || !status.running) {
       pipelineLoading = false;
-      if (els.loadingMsg) els.loadingMsg.style.display = 'none';
     }
 
     if (status.running && !captureTimer && status.models_loaded) {
@@ -176,10 +162,7 @@ function _connectSocket() {
   });
 
   socket.on('loading:update', (data) => {
-    if (els.loadingMsg) {
-      els.loadingMsg.textContent = data.message;
-      els.loadingMsg.style.display = 'inline';
-    }
+    _addLogEntry(null, data.message, '', false);
   });
 
   // OSC monitor from Socket.io (BLIP mode sends OSC via Python)
