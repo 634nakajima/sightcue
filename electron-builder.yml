@@ -8,11 +8,13 @@ mac:
     - dir
   identity: null
   forceCodeSigning: false
+  icon: resources/icon.icns
   extendInfo:
     NSCameraUsageDescription: "This app needs camera access for real-time vision analysis and trigger detection."
 win:
   target:
     - nsis
+  icon: resources/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
