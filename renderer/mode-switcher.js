@@ -1,5 +1,6 @@
 // Mode switcher: manages transitions between BLIP, MediaPipe, Teachable Machine
 const roi = require('./roi');
+const oscMonitor = require('./osc-monitor');
 
 let currentMode = 'blip';
 let modes = {};
@@ -72,6 +73,9 @@ function switchMode(newMode) {
     if (overlay) overlay.style.pointerEvents = 'auto';
     roi.switchROIMode('teachable', 'square');
   }
+
+  // Update OSC monitor filter
+  oscMonitor.setMode(newMode);
 
   // Start new mode
   _startNewMode(newMode);

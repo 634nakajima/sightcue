@@ -1,30 +1,44 @@
 // OSC Monitor: displays OSC messages from both Socket.io and IPC
+// Filters by active mode
 const { ipcRenderer } = require('electron');
 
 const _oscRows = {}; // address -> DOM row element
 let monitorEl = null;
+let activeMode = 'blip'; // 'blip' | 'mediapipe' | 'teachable'
+
+// Address prefixes per mode
+const MODE_PREFIXES = {
+  blip: ['/vision/'],
+  mediapipe: ['/hand/', '/face/'],
+  teachable: ['/tm/'],
+};
 
 function init() {
   monitorEl = document.getElementById('osc-monitor');
   if (!monitorEl) return;
 
-  // Listen for IPC-based OSC monitor events (from main process, for MediaPipe/TM)
   ipcRenderer.on('osc:monitor', (event, data) => {
     addOscMessage(data.address, data.args, data.timestamp);
   });
 }
 
-/**
- * Add/update an OSC message in the monitor.
- * Uses in-place update: one row per address, value updates live.
- * @param {string} address - OSC address
- * @param {Array} args - Array of {type, value} or plain values
- * @param {number} [timestamp] - optional timestamp
- */
+function setMode(mode) {
+  if (mode !== activeMode) {
+    activeMode = mode;
+    clearMonitor();
+  }
+}
+
+function _matchesMode(address) {
+  const prefixes = MODE_PREFIXES[activeMode];
+  if (!prefixes) return true;
+  return prefixes.some(p => address.startsWith(p));
+}
+
 function addOscMessage(address, args, timestamp) {
   if (!monitorEl) return;
+  if (!_matchesMode(address)) return;
 
-  // Format value string
   let valStr;
   if (Array.isArray(args)) {
     valStr = args.map(a => {
@@ -39,10 +53,8 @@ function addOscMessage(address, args, timestamp) {
 
   let row = _oscRows[address];
   if (row) {
-    // Update value in-place
     row.querySelector('.osc-val').textContent = valStr;
   } else {
-    // Create new row
     row = document.createElement('div');
     row.className = 'osc-row';
     row.innerHTML = `<span class="osc-addr">${address}</span><span class="osc-val">${valStr}</span>`;
@@ -51,13 +63,10 @@ function addOscMessage(address, args, timestamp) {
   }
 }
 
-/**
- * Clear all rows from the monitor.
- */
 function clearMonitor() {
   if (!monitorEl) return;
   monitorEl.innerHTML = '';
   Object.keys(_oscRows).forEach(k => delete _oscRows[k]);
 }
 
-module.exports = { init, addOscMessage, clearMonitor };
+module.exports = { init, addOscMessage, clearMonitor, setMode };
