@@ -211,8 +211,13 @@ function onMouseMove(e) {
 
     let dw, dh;
     if (aspectConstraint === 'square') {
-      const size = Math.max(Math.abs(nx2 - nx1), Math.abs(ny2 - ny1));
-      dw = size; dh = size;
+      // Compute in pixel space so it looks square on screen
+      const r = getVideoRenderRect();
+      const dpx = Math.abs(px - dragStart.x);
+      const dpy = Math.abs(py - dragStart.y);
+      const side = Math.max(dpx, dpy); // pixel side length
+      dw = side / r.w;  // convert back to normalized
+      dh = side / r.h;
     } else {
       dw = Math.abs(nx2 - nx1); dh = Math.abs(ny2 - ny1);
     }
@@ -243,11 +248,17 @@ function onMouseMove(e) {
   if (dragMode === 'resize') {
     const { nx, ny } = overlayToNorm(px, py);
     if (aspectConstraint === 'square') {
-      const size = Math.max(Math.abs(nx - dragAnchor.nx), Math.abs(ny - dragAnchor.ny));
-      dragTarget.x = Math.min(dragAnchor.nx, dragAnchor.nx + (nx > dragAnchor.nx ? 0 : -size));
-      dragTarget.y = Math.min(dragAnchor.ny, dragAnchor.ny + (ny > dragAnchor.ny ? 0 : -size));
-      dragTarget.w = size;
-      dragTarget.h = size;
+      const r = getVideoRenderRect();
+      const { ox: anchorOx, oy: anchorOy } = normToOverlay(dragAnchor.nx, dragAnchor.ny);
+      const dpx = Math.abs(px - anchorOx);
+      const dpy = Math.abs(py - anchorOy);
+      const side = Math.max(dpx, dpy);
+      const nw = side / r.w;
+      const nh = side / r.h;
+      dragTarget.x = Math.min(dragAnchor.nx, dragAnchor.nx + (nx > dragAnchor.nx ? 0 : -nw));
+      dragTarget.y = Math.min(dragAnchor.ny, dragAnchor.ny + (ny > dragAnchor.ny ? 0 : -nh));
+      dragTarget.w = nw;
+      dragTarget.h = nh;
     } else {
       const newX = Math.min(nx, dragAnchor.nx);
       const newY = Math.min(ny, dragAnchor.ny);
@@ -270,8 +281,12 @@ function onMouseUp(e) {
 
     let dw, dh;
     if (aspectConstraint === 'square') {
-      const size = Math.max(Math.abs(nx2 - nx1), Math.abs(ny2 - ny1));
-      dw = size; dh = size;
+      const r = getVideoRenderRect();
+      const dpx = Math.abs(px - dragStart.x);
+      const dpy = Math.abs(py - dragStart.y);
+      const side = Math.max(dpx, dpy);
+      dw = side / r.w;
+      dh = side / r.h;
     } else {
       dw = Math.abs(nx2 - nx1); dh = Math.abs(ny2 - ny1);
     }
