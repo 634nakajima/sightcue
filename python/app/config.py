@@ -5,7 +5,7 @@ DEFAULT_CONFIG = {
     "camera": {"device": 0, "width": 640, "height": 480},
     "pipeline": {
         "capture_interval": 2.0,
-        "blip_model": "Salesforce/blip-image-captioning-base",
+        "blip_model": "Salesforce/blip-image-captioning-large",
         "embedding_model": "all-MiniLM-L6-v2",
     },
     "triggers": {
