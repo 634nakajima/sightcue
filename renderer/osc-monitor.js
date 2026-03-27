@@ -8,7 +8,7 @@ let activeMode = 'blip'; // 'blip' | 'mediapipe' | 'teachable'
 
 // Address prefixes per mode
 const MODE_PREFIXES = {
-  blip: ['/vision/'],
+  blip: ['/blip/'],
   mediapipe: ['/hand/', '/face/'],
   teachable: ['/tm/'],
 };

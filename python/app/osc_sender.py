@@ -16,7 +16,7 @@ class OSCSender:
     def send_trigger(self, match, roi_name=None):
         idx = match.get("trigger_index", 0)
         if roi_name:
-            addr = f"{self.prefix}/roi/{roi_name}/trigger{idx}"
+            addr = f"{self.prefix}/{roi_name}/trigger{idx}"
         else:
             addr = f"{self.prefix}/trigger{idx}"
         val = match["similarity"]
@@ -25,7 +25,7 @@ class OSCSender:
 
     def send_caption(self, caption, roi_name=None):
         if roi_name:
-            addr = f"{self.prefix}/roi/{roi_name}/caption"
+            addr = f"{self.prefix}/{roi_name}/caption"
         else:
             addr = f"{self.prefix}/caption"
         self._client.send_message(addr, [caption])

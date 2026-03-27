@@ -280,11 +280,16 @@ function _handleSimilarities(data) {
 
     let row = existingRows[key];
     if (row) {
+      // Update existing row in-place (including label for renamed ROIs)
       const bar = row.querySelector('.sim-bar');
       bar.style.width = pct + '%';
       bar.className = 'sim-bar ' + level;
       row.querySelector('.sim-threshold').style.left = threshPct + '%';
       row.querySelector('.sim-value').textContent = s.similarity.toFixed(3);
+      const label = row.querySelector('.sim-label');
+      const roiLabel = s.roi_name ? `[${s.roi_name}] ` : '';
+      label.textContent = `${roiLabel}${s.description}`;
+      label.title = s.description;
     } else {
       const roiLabel = s.roi_name ? `[${s.roi_name}] ` : '';
       row = document.createElement('div');
@@ -360,6 +365,8 @@ function updateROIList() {
     nameInput.addEventListener('change', () => {
       renameROI(r.id, nameInput.value);
       nameInput.value = r.name;
+      // Clear stale OSC monitor entries (old ROI name addresses)
+      oscMonitor.clearMonitor();
     });
     nameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') nameInput.blur();

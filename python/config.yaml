@@ -15,8 +15,8 @@ triggers:
 
 osc:
   host: "127.0.0.1"
-  port: 9000
-  address_prefix: "/vision"
+  port: 8000
+  address_prefix: "/blip"
 
 server:
   host: "0.0.0.0"

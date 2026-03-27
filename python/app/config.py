@@ -13,7 +13,7 @@ DEFAULT_CONFIG = {
         "cooldown": 5.0,
         "persistence_file": "data/triggers.json",
     },
-    "osc": {"host": "127.0.0.1", "port": 9000, "address_prefix": "/vision"},
+    "osc": {"host": "127.0.0.1", "port": 8000, "address_prefix": "/blip"},
     "server": {"host": "0.0.0.0", "port": 5555},
 }
 
