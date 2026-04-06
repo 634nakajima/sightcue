@@ -206,8 +206,9 @@
       const host = document.getElementById('osc-host').value;
       const port = parseInt(document.getElementById('osc-port').value);
       ipcRenderer.invoke('osc:updateConfig', { host, port });
-      // BLIP-specific
+      // BLIP-specific: also update Python backend OSC target and capture interval
       if (modeSwitcher.currentMode === 'blip') {
+        blipMode.updateOscTarget(host, port);
         blipMode.setCaptureInterval(parseFloat(document.getElementById('capture-interval').value));
       }
       window.toggleSettings();

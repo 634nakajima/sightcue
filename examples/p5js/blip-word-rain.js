@@ -34,9 +34,44 @@ const TRIGGER_COLORS = [
   [255, 220, 50],   // 黄
 ];
 
+// 文字列型OSC対応パーサー（Interplay標準ヘルパーはfloat/intのみのため上書き）
+// ※関数名を _oscParseExt にしてInterplayの自動削除を回避
+function _oscParseExt(buf) {
+  var view = new DataView(buf);
+  var i = 0;
+  var addrEnd = i;
+  while (addrEnd < view.byteLength && view.getUint8(addrEnd) !== 0) addrEnd++;
+  var address = String.fromCharCode.apply(null, new Uint8Array(buf, i, addrEnd - i));
+  i = addrEnd;
+  i += 4 - (i % 4);
+  if (i >= view.byteLength || view.getUint8(i) !== 44) return null;
+  i++;
+  var type = String.fromCharCode(view.getUint8(i));
+  i++;
+  i += 4 - (i % 4);
+  var value;
+  if (type === 'f' && i + 4 <= view.byteLength) {
+    value = view.getFloat32(i);
+  } else if (type === 'i' && i + 4 <= view.byteLength) {
+    value = view.getInt32(i);
+  } else if (type === 's') {
+    var strEnd = i;
+    while (strEnd < view.byteLength && view.getUint8(strEnd) !== 0) strEnd++;
+    value = String.fromCharCode.apply(null, new Uint8Array(buf, i, strEnd - i));
+  }
+  return { address: address, value: value };
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   setupOSC(7401);
+  // 文字列OSC対応: onmessageを差し替え
+  if (oscWs) {
+    oscWs.onmessage = function(e) {
+      var parsed = _oscParseExt(e.data);
+      if (parsed) oscData[parsed.address] = parsed.value;
+    };
+  }
   textFont('Georgia');
 }
 

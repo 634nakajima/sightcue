@@ -101,6 +101,12 @@ function setCaptureInterval(val) {
   }
 }
 
+function updateOscTarget(host, port) {
+  if (socket) {
+    socket.emit('config:update', { osc_host: host, osc_port: port });
+  }
+}
+
 // --- Socket.io connection ---
 function _connectSocket() {
   socket = io(`http://localhost:${PYTHON_PORT}`, { reconnection: true });
@@ -417,4 +423,5 @@ module.exports = {
   startBlip,
   stopBlip,
   setCaptureInterval,
+  updateOscTarget,
 };
