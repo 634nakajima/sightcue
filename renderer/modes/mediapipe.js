@@ -10,7 +10,7 @@ const { drawLandmarks } = require('./mediapipe-draw');
 let gestureRecognizer = null;
 let faceLandmarker = null;
 let smoother = new ExponentialSmoother(0.5);
-let animFrameId = 0;
+let loopTimerId = 0;
 let lastSendTime = 0;
 let running = false;
 let ready = false;
@@ -92,17 +92,17 @@ async function startMediaPipe() {
     if (els.readyStatus) els.readyStatus.style.display = 'none';
   }
 
-  // Start detection loop
+  // Start detection loop (use setTimeout instead of rAF to avoid background throttling)
   fpsLastTime = performance.now();
   fpsFrameCount = 0;
-  animFrameId = requestAnimationFrame(_detect);
+  loopTimerId = setTimeout(_detect, 0);
 }
 
 function stopMediaPipe() {
   running = false;
-  if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
-    animFrameId = 0;
+  if (loopTimerId) {
+    clearTimeout(loopTimerId);
+    loopTimerId = 0;
   }
 
   // Clear the overlay canvas
@@ -167,7 +167,7 @@ function _detect() {
 
   const video = els.video;
   if (!video || video.readyState < 2 || !ready) {
-    animFrameId = requestAnimationFrame(_detect);
+    loopTimerId = setTimeout(_detect, 16);
     return;
   }
 
@@ -309,7 +309,7 @@ function _detect() {
     _updateDataMonitor(trackingResult);
   }
 
-  animFrameId = requestAnimationFrame(_detect);
+  loopTimerId = setTimeout(_detect, 0);
 }
 
 function _updateDataMonitor(result) {

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hand Paint - SightCue MediaPipe</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #000; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script>
+// --- Interplay OSC Helper (with string support) ---
+var oscWs = null;
+var oscData = {};
+
+function setupOSC(port) {
+  port = port || 7401;
+  oscWs = new WebSocket('ws://localhost:' + port);
+  oscWs.binaryType = 'arraybuffer';
+  oscWs.onmessage = function(e) {
+    var parsed = parseOSC(e.data);
+    if (parsed) oscData[parsed.address] = parsed.value;
+  };
+}
+
+function parseOSC(buf) {
+  var view = new DataView(buf);
+  var i = 0;
+  var addrEnd = i;
+  while (addrEnd < view.byteLength && view.getUint8(addrEnd) !== 0) addrEnd++;
+  var address = String.fromCharCode.apply(null, new Uint8Array(buf, i, addrEnd - i));
+  i = addrEnd;
+  i += 4 - (i % 4);
+  if (i >= view.byteLength || view.getUint8(i) !== 44) return null;
+  i++;
+  var type = String.fromCharCode(view.getUint8(i));
+  i++;
+  i += 4 - (i % 4);
+  var value;
+  if (type === 'f' && i + 4 <= view.byteLength) {
+    value = view.getFloat32(i);
+  } else if (type === 'i' && i + 4 <= view.byteLength) {
+    value = view.getInt32(i);
+  } else if (type === 's') {
+    var strEnd = i;
+    while (strEnd < view.byteLength && view.getUint8(strEnd) !== 0) strEnd++;
+    value = String.fromCharCode.apply(null, new Uint8Array(buf, i, strEnd - i));
+  }
+  return { address: address, value: value };
+}
+
+function sendOSC(address, value) {
+  if (!oscWs || oscWs.readyState !== 1) return;
+  var addrBytes = new TextEncoder().encode(address);
+  var addrLen = addrBytes.length + 1;
+  addrLen += (4 - (addrLen % 4)) % 4;
+  var tagLen = 4;
+  var buf = new ArrayBuffer(addrLen + tagLen + 4);
+  var u8 = new Uint8Array(buf);
+  u8.set(addrBytes, 0);
+  u8[addrLen] = 44;
+  u8[addrLen + 1] = 102;
+  new DataView(buf).setFloat32(addrLen + tagLen, value);
+  oscWs.send(buf);
+}
+// --- end OSC Helper ---
+
+// ============================================================
+// Hand Paint — SightCue MediaPipe + p5.js
+// ============================================================
+// 手のランドマーク座標（人差し指先端）で画面上にパーティクルを描画。
+// ジェスチャーでブラシの色・サイズが切り替わります。
+//
+// SightCue: MediaPipe Tracking モード, OSCポート 7400
+// ============================================================
+
+let particles = [];
+const MAX_PARTICLES = 2000;
+
+const BRUSHES = {
+  0: { color: [255, 255, 255], size: 6, name: 'None' },
+  1: { color: [255, 80, 80], size: 3, name: 'Closed Fist' },
+  2: { color: [80, 200, 255], size: 20, name: 'Open Palm' },
+  3: { color: [255, 220, 50], size: 10, name: 'Pointing Up' },
+  4: { color: [180, 80, 255], size: 8, name: 'Thumb Down' },
+  5: { color: [80, 255, 120], size: 12, name: 'Thumb Up' },
+  6: { color: [255, 150, 200], size: 15, name: 'Victory' },
+  7: { color: [255, 200, 100], size: 18, name: 'I Love You' },
+};
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  setupOSC(7401);
+  background(15);
+  textFont('monospace');
+}
+
+function draw() {
+  background(15, 15, 20, 12);
+  processHand('left');
+  processHand('right');
+  updateParticles();
+  drawUI();
+}
+
+function processHand(side) {
+  let detected = oscData[`/hand/${side}/detected`] || 0;
+  if (detected < 0.5) return;
+
+  let tipX = oscData[`/hand/${side}/index/tip/x`];
+  let tipY = oscData[`/hand/${side}/index/tip/y`];
+  if (tipX === undefined || tipY === undefined) return;
+
+  let x = (1 - tipX) * width;
+  let y = tipY * height;
+
+  let gestureIdx = Math.round(oscData[`/hand/${side}/gesture/index`] || 0);
+  let brush = BRUSHES[gestureIdx] || BRUSHES[0];
+
+  for (let i = 0; i < 3; i++) {
+    particles.push({
+      x: x + random(-brush.size / 2, brush.size / 2),
+      y: y + random(-brush.size / 2, brush.size / 2),
+      vx: random(-0.5, 0.5),
+      vy: random(-1.5, -0.3),
+      size: random(brush.size * 0.5, brush.size * 1.2),
+      color: [...brush.color],
+      alpha: 255,
+      life: random(60, 150),
+    });
+  }
+
+  while (particles.length > MAX_PARTICLES) particles.shift();
+
+  noFill();
+  stroke(...brush.color, 150);
+  strokeWeight(1.5);
+  circle(x, y, brush.size * 3);
+
+  fill(...brush.color);
+  noStroke();
+  textSize(10);
+  textAlign(CENTER);
+  text(side === 'left' ? 'L' : 'R', x, y - brush.size * 2);
+}
+
+function updateParticles() {
+  noStroke();
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.01;
+    p.alpha -= 255 / p.life;
+    p.size *= 0.995;
+
+    if (p.alpha <= 0 || p.size < 0.3) {
+      particles.splice(i, 1);
+      continue;
+    }
+
+    fill(p.color[0], p.color[1], p.color[2], p.alpha);
+    circle(p.x, p.y, p.size);
+  }
+}
+
+function drawUI() {
+  fill(255, 200);
+  noStroke();
+  textSize(12);
+  textAlign(LEFT);
+  let y = 30;
+  text('Hand Paint — SightCue MediaPipe', 20, y);
+  y += 25;
+
+  textSize(10);
+  fill(180);
+  text('Gestures:', 20, y);
+  y += 18;
+  for (let [idx, brush] of Object.entries(BRUSHES)) {
+    if (idx == 0) continue;
+    fill(...brush.color, 180);
+    circle(30, y - 4, 8);
+    fill(180);
+    text(`${brush.name}`, 42, y);
+    y += 16;
+  }
+
+  fill(100);
+  textAlign(RIGHT);
+  text(`particles: ${particles.length}`, width - 20, height - 20);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  background(15);
+}
+</script>
+</body>
+</html>
