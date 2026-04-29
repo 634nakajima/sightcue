@@ -12,25 +12,29 @@ const PYTHON_PORT = 5555;
 // ── Python backend lifecycle (lazy) ─────────────────────────
 
 function findPython() {
-  const bundledPath = path.join(process.resourcesPath, 'python-backend', 'vision-backend');
+  const isWin = process.platform === 'win32';
+  const exeName = isWin ? 'vision-backend.exe' : 'vision-backend';
+  const bundledPath = path.join(process.resourcesPath, 'python-backend', exeName);
   try {
     fs.accessSync(bundledPath);
     return { cmd: bundledPath, args: [], cwd: path.join(process.resourcesPath, 'python-backend') };
   } catch (e) {
     const pythonDir = path.join(__dirname, 'python');
-    return { cmd: 'python3', args: ['run.py'], cwd: pythonDir };
+    const pythonCmd = isWin ? 'python' : 'python3';
+    return { cmd: pythonCmd, args: ['run.py'], cwd: pythonDir, shell: isWin };
   }
 }
 
 function startPythonBackend() {
   if (pythonProcess) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const { cmd, args, cwd } = findPython();
+    const { cmd, args, cwd, shell } = findPython();
     console.log(`[Main] Starting Python backend: ${cmd} ${args.join(' ')} in ${cwd}`);
 
     pythonProcess = spawn(cmd, args, {
       cwd: cwd,
       env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      shell: !!shell,
     });
 
     let resolved = false;
