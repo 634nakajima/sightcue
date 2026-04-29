@@ -15,10 +15,13 @@ function findPython() {
   const isWin = process.platform === 'win32';
   const exeName = isWin ? 'vision-backend.exe' : 'vision-backend';
   const bundledPath = path.join(process.resourcesPath, 'python-backend', exeName);
+  console.log(`[Main] Looking for bundled Python at: ${bundledPath}`);
   try {
-    fs.accessSync(bundledPath);
+    fs.accessSync(bundledPath, fs.constants.X_OK);
+    console.log('[Main] Bundled Python found.');
     return { cmd: bundledPath, args: [], cwd: path.join(process.resourcesPath, 'python-backend') };
   } catch (e) {
+    console.warn(`[Main] Bundled Python not found (${e.message}), falling back to system Python.`);
     const pythonDir = path.join(__dirname, 'python');
     const pythonCmd = isWin ? 'python' : 'python3';
     return { cmd: pythonCmd, args: ['run.py'], cwd: pythonDir, shell: isWin };
@@ -56,14 +59,18 @@ function startPythonBackend() {
     });
 
     pythonProcess.on('error', (err) => {
-      console.error('[Main] Failed to start Python:', err);
+      console.error('[Main] Failed to spawn Python process:', err);
       pythonProcess = null;
-      if (!resolved) { resolved = true; reject(err); }
+      if (!resolved) { resolved = true; reject(new Error(`Spawn failed: ${err.message}`)); }
     });
 
     pythonProcess.on('exit', (code) => {
       console.log(`[Main] Python exited with code ${code}`);
       pythonProcess = null;
+      if (!resolved) {
+        resolved = true;
+        reject(new Error(`Python process exited early with code ${code}`));
+      }
     });
 
     setTimeout(() => {

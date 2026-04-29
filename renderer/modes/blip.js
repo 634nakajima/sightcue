@@ -65,7 +65,7 @@ function startBlip() {
     }).catch(err => {
       console.error('[BLIP] Failed to start Python:', err);
       pipelineLoading = false;
-      _addLogEntry(null, 'Failed to start Python backend', '', false);
+      _addLogEntry(null, `Failed to start Python backend: ${err && err.message ? err.message : err}`, '', false);
     });
   } else if (!pipelineRunning && !pipelineLoading) {
     pipelineLoading = true;
