@@ -2,7 +2,7 @@
 set -e
 
 APP_NAME="SightCue"
-DMG_NAME="release/${APP_NAME}-1.0.0-arm64.dmg"
+DMG_NAME="release/${APP_NAME}-1.2.1-arm64.dmg"
 APP_PATH="release/mac-arm64/${APP_NAME}.app"
 STAGING="release/dmg-staging"
 

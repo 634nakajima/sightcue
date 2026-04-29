@@ -12,7 +12,7 @@ echo "Installing PyInstaller..."
 pip3 install pyinstaller
 
 echo "Building Python backend..."
-pyinstaller \
+python3 -m PyInstaller \
   --onedir \
   --name vision-backend \
   --distpath "$PROJECT_DIR/release/python-backend" \
