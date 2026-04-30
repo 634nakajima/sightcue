@@ -28,14 +28,25 @@ class VisionPipeline:
         self._running = True
         # Pre-load models in background thread
         def _preload():
-            if self.socketio:
-                self.socketio.emit("loading:update", {"message": "Loading AI models... This may take a few minutes on first run."})
-            self.models._load_blip()
-            self.models._load_embedding()
-            self.trigger_manager.set_models(self.models)
-            if self.socketio:
-                self.socketio.emit("status:update", self.get_status())
-            print("[Pipeline] Models loaded, ready for frames.")
+            def _emit(msg):
+                print(f"[Pipeline] {msg}")
+                if self.socketio:
+                    self.socketio.emit("loading:update", {"message": msg})
+            try:
+                _emit("Loading BLIP model... (downloading ~1.8GB on first run, please wait)")
+                self.models._load_blip()
+                _emit("Loading embedding model...")
+                self.models._load_embedding()
+                self.trigger_manager.set_models(self.models)
+                if self.socketio:
+                    self.socketio.emit("status:update", self.get_status())
+                print("[Pipeline] Models loaded, ready for frames.")
+            except Exception as e:
+                err_msg = f"Model loading failed: {e}"
+                print(f"[Pipeline] ERROR: {err_msg}")
+                if self.socketio:
+                    self.socketio.emit("loading:update", {"message": err_msg})
+                self._running = False
         threading.Thread(target=_preload, daemon=True).start()
         print("[Pipeline] Started.")
 
