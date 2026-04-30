@@ -29,7 +29,7 @@ jobs:
       - name: Build Python backend
         working-directory: python
         run: |
-          pyinstaller --onedir --name vision-backend --distpath "../release/python-backend" --workpath "../release/python-build" --specpath "../release" --noconfirm --collect-all torch --collect-all transformers --collect-all sentence_transformers --collect-all tokenizers --hidden-import=flask --hidden-import=flask_socketio --hidden-import=engineio.async_drivers.threading --add-data "config.yaml;." run.py
+          pyinstaller --onedir --name vision-backend --distpath "../release/python-backend" --workpath "../release/python-build" --specpath "../release" --noconfirm --collect-all torch --collect-all transformers --collect-all sentence_transformers --collect-all tokenizers --hidden-import=flask --hidden-import=flask_socketio --hidden-import=engineio.async_drivers.threading --add-data "%CD%\config.yaml;." run.py
           mkdir "../release/python-backend/vision-backend/data"
         shell: cmd
 
