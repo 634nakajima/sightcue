@@ -1,6 +1,6 @@
 {
   "name": "sightcue",
-  "version": "1.2.1",
+  "version": "1.2.7",
   "description": "Real-time vision-based trigger platform with ROI support",
   "main": "main.js",
   "scripts": {
