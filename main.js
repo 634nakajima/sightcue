@@ -54,7 +54,7 @@ function startPythonBackend() {
 
     pythonProcess = spawn(cmd, args, {
       cwd: cwd,
-      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      env: { ...process.env, PYTHONUNBUFFERED: '1', SIGHTCUE_DATA_DIR: app.getPath('userData') },
       shell: !!shell,
     });
 

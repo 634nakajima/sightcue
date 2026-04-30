@@ -35,4 +35,10 @@ def load_config(path="config.yaml"):
         with open(abs_path) as f:
             user_config = yaml.safe_load(f) or {}
         config = _deep_merge(config, user_config)
+
+    # Use a user-writable directory for data files (important on Windows)
+    data_dir = os.environ.get("SIGHTCUE_DATA_DIR")
+    if data_dir:
+        config["triggers"]["persistence_file"] = os.path.join(data_dir, "triggers.json")
+
     return config
