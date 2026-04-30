@@ -14,16 +14,29 @@ const PYTHON_PORT = 5555;
 function findPython() {
   const isWin = process.platform === 'win32';
   const exeName = isWin ? 'vision-backend.exe' : 'vision-backend';
-  const bundledPath = path.join(process.resourcesPath, 'python-backend', exeName);
+  const backendDir = path.join(process.resourcesPath, 'python-backend');
+  const bundledPath = path.join(backendDir, exeName);
+
+  // Log directory contents for diagnostics
+  try {
+    const entries = fs.readdirSync(backendDir);
+    console.log(`[Main] python-backend contents: ${entries.join(', ')}`);
+  } catch (e) {
+    console.warn(`[Main] python-backend directory not accessible: ${e.message}`);
+  }
+
   console.log(`[Main] Looking for bundled Python at: ${bundledPath}`);
   try {
-    fs.accessSync(bundledPath, fs.constants.X_OK);
+    fs.accessSync(bundledPath, fs.constants.F_OK);
     console.log('[Main] Bundled Python found.');
-    return { cmd: bundledPath, args: [], cwd: path.join(process.resourcesPath, 'python-backend') };
+    return { cmd: bundledPath, args: [], cwd: backendDir };
   } catch (e) {
     console.warn(`[Main] Bundled Python not found (${e.message}), falling back to system Python.`);
-    const pythonDir = path.join(__dirname, 'python');
     const pythonCmd = isWin ? 'python' : 'python3';
+    // Note: __dirname inside ASAR is not a real path; use resourcesPath-relative fallback
+    const pythonDir = app.isPackaged
+      ? path.join(process.resourcesPath, 'python')
+      : path.join(__dirname, 'python');
     return { cmd: pythonCmd, args: ['run.py'], cwd: pythonDir, shell: isWin };
   }
 }
