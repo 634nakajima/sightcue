@@ -17,34 +17,39 @@ function findPython() {
   const backendDir = path.join(process.resourcesPath, 'python-backend');
   const bundledPath = path.join(backendDir, exeName);
 
-  // Log directory contents for diagnostics
+  let dirContents;
   try {
     const entries = fs.readdirSync(backendDir);
-    console.log(`[Main] python-backend contents: ${entries.join(', ')}`);
+    dirContents = entries.length ? entries.join(', ') : '(empty)';
   } catch (e) {
-    console.warn(`[Main] python-backend directory not accessible: ${e.message}`);
+    dirContents = `(not found: ${e.message})`;
   }
 
-  console.log(`[Main] Looking for bundled Python at: ${bundledPath}`);
   try {
     fs.accessSync(bundledPath, fs.constants.F_OK);
-    console.log('[Main] Bundled Python found.');
     return { cmd: bundledPath, args: [], cwd: backendDir };
   } catch (e) {
-    console.warn(`[Main] Bundled Python not found (${e.message}), falling back to system Python.`);
+    if (app.isPackaged) {
+      throw new Error(
+        `Bundled backend not found.\nLooked for: ${bundledPath}\npython-backend contents: ${dirContents}`
+      );
+    }
+    // Development fallback
     const pythonCmd = isWin ? 'python' : 'python3';
-    // Note: __dirname inside ASAR is not a real path; use resourcesPath-relative fallback
-    const pythonDir = app.isPackaged
-      ? path.join(process.resourcesPath, 'python')
-      : path.join(__dirname, 'python');
-    return { cmd: pythonCmd, args: ['run.py'], cwd: pythonDir, shell: isWin };
+    return { cmd: pythonCmd, args: ['run.py'], cwd: path.join(__dirname, 'python') };
   }
 }
 
 function startPythonBackend() {
   if (pythonProcess) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const { cmd, args, cwd, shell } = findPython();
+    let pythonConfig;
+    try {
+      pythonConfig = findPython();
+    } catch (e) {
+      return reject(e);
+    }
+    const { cmd, args, cwd, shell } = pythonConfig;
     console.log(`[Main] Starting Python backend: ${cmd} ${args.join(' ')} in ${cwd}`);
 
     pythonProcess = spawn(cmd, args, {
