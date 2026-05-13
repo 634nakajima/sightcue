@@ -71,9 +71,11 @@ async function startMediaPipe() {
 
   // Initialize models if not already done
   if (!ready) {
+    _log('Initializing MediaPipe models...');
     try {
       await _initModels();
       ready = true;
+      _log('Models ready, tracking started');
       if (els.readyStatus) {
         els.readyStatus.textContent = 'Ready';
         setTimeout(() => {
@@ -82,6 +84,7 @@ async function startMediaPipe() {
       }
     } catch (err) {
       console.error('[MediaPipe] Init error:', err);
+      _log('Error: ' + err.message);
       if (els.readyStatus) {
         els.readyStatus.textContent = 'Error: ' + err.message;
       }
@@ -89,6 +92,7 @@ async function startMediaPipe() {
       return;
     }
   } else {
+    _log('Tracking started');
     if (els.readyStatus) els.readyStatus.style.display = 'none';
   }
 
@@ -316,47 +320,77 @@ function _updateDataMonitor(result) {
   if (!els.dataMonitor) return;
   const monitor = els.dataMonitor;
 
-  let html = '';
+  let html = '<div class="dm-section">';
+  html += '<span class="dm-header">Hands</span>';
+  html += _renderHandCard('Left', result.hands.left);
+  html += _renderHandCard('Right', result.hands.right);
+  html += '</div>';
 
-  // Hands
-  for (const side of ['left', 'right']) {
-    const hand = result.hands[side];
-    if (hand) {
-      html += `<div class="dm-section"><span class="dm-header">${side} hand</span>`;
-      if (hand.gesture && hand.gesture !== 'None') {
-        html += `<div class="dm-row"><span class="dm-key">gesture</span><span class="dm-val">${hand.gesture} (${hand.gestureScore.toFixed(2)})</span></div>`;
-      }
-      // Show wrist and fingertip positions only (to keep it compact)
-      const keyLandmarks = [0, 4, 8, 12, 16, 20];
-      for (const idx of keyLandmarks) {
-        if (idx < hand.landmarks.length) {
-          const lm = hand.landmarks[idx];
-          html += `<div class="dm-row"><span class="dm-key">${lm.name}</span><span class="dm-val">${lm.x.toFixed(3)} ${lm.y.toFixed(3)} ${lm.z.toFixed(3)}</span></div>`;
-        }
-      }
-      html += '</div>';
-    }
-  }
+  html += '<div class="dm-section">';
+  html += '<span class="dm-header">Face</span>';
+  html += _renderFaceCard(result.face);
+  html += '</div>';
 
-  // Face
-  if (result.face.length > 0) {
-    html += '<div class="dm-section"><span class="dm-header">face</span>';
-    // Show a subset of key face landmarks
-    const keyFace = ['nose/tip', 'left_eye/inner', 'right_eye/inner', 'mouth/upper', 'mouth/lower'];
-    for (const name of keyFace) {
-      const lm = result.face.find(f => f.name === name);
-      if (lm) {
-        html += `<div class="dm-row"><span class="dm-key">${lm.name}</span><span class="dm-val">${lm.x.toFixed(3)} ${lm.y.toFixed(3)} ${lm.z.toFixed(3)}</span></div>`;
-      }
-    }
-    html += '</div>';
-  }
-
-  if (!html) {
-    html = '<div class="dm-empty">No tracking data</div>';
-  }
+  html += `<div class="dm-footer">FPS <strong>${fps}</strong> &middot; full OSC addresses in monitor below</div>`;
 
   monitor.innerHTML = html;
+}
+
+function _renderHandCard(label, hand) {
+  if (!hand) {
+    return `<div class="dm-card dm-card-off">
+      <span class="dm-dot dm-dot-off"></span>
+      <span class="dm-card-label">${label}</span>
+      <span class="dm-card-detail">Not detected</span>
+    </div>`;
+  }
+  const rawGesture = hand.gesture && hand.gesture !== 'None' ? hand.gesture : null;
+  const gestureText = rawGesture ? rawGesture.replace(/_/g, ' ') : 'tracking';
+  const score = rawGesture && hand.gestureScore > 0
+    ? `${(hand.gestureScore * 100).toFixed(0)}%`
+    : '';
+  return `<div class="dm-card">
+    <span class="dm-dot dm-dot-on"></span>
+    <span class="dm-card-label">${label}</span>
+    <span class="dm-card-gesture">${_escapeHtml(gestureText)}</span>
+    <span class="dm-card-detail">${score}</span>
+  </div>`;
+}
+
+function _renderFaceCard(face) {
+  if (!face || face.length === 0) {
+    return `<div class="dm-card dm-card-off">
+      <span class="dm-dot dm-dot-off"></span>
+      <span class="dm-card-label">Face</span>
+      <span class="dm-card-detail">Not detected</span>
+    </div>`;
+  }
+  return `<div class="dm-card">
+    <span class="dm-dot dm-dot-on"></span>
+    <span class="dm-card-label">Face</span>
+    <span class="dm-card-detail">${face.length} landmarks tracked</span>
+  </div>`;
+}
+
+function _escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+function _log(message) {
+  if (!els.log) return;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  const time = document.createElement('span');
+  time.className = 'log-time';
+  time.textContent = new Date().toLocaleTimeString();
+  const msg = document.createElement('span');
+  msg.textContent = ' ' + message;
+  entry.appendChild(time);
+  entry.appendChild(msg);
+  els.log.prepend(entry);
+  while (els.log.children.length > 100) els.log.removeChild(els.log.lastChild);
 }
 
 module.exports = {

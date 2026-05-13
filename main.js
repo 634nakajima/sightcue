@@ -145,35 +145,57 @@ function setupIPC() {
 
   ipcMain.on('osc:sendLandmarks', (event, payload) => {
     const { hands, face } = payload;
+    const monitorMessages = [];
+
+    const sendAndMonitor = (address, value) => {
+      oscSender.sendFloat(address, value);
+      monitorMessages.push({ address, args: [{ type: 'f', value }] });
+    };
+
+    const sendLmAndMonitor = (type, side, landmarks) => {
+      for (const lm of landmarks) {
+        const prefix = type === 'hand' ? `/hand/${side}/${lm.name}` : `/face/${lm.name}`;
+        sendAndMonitor(`${prefix}/x`, lm.x);
+        sendAndMonitor(`${prefix}/y`, lm.y);
+        sendAndMonitor(`${prefix}/z`, lm.z);
+      }
+    };
 
     if (hands) {
       if (hands.left) {
-        oscSender.sendFloat('/hand/left/detected', 1);
-        oscSender.sendLandmarks('hand', 'left', hands.left.landmarks);
+        sendAndMonitor('/hand/left/detected', 1);
+        sendLmAndMonitor('hand', 'left', hands.left.landmarks);
         if (hands.left.gesture) {
-          oscSender.sendFloat('/hand/left/gesture/index', hands.left.gestureIndex);
-          oscSender.sendFloat('/hand/left/gesture/score', hands.left.gestureScore);
+          sendAndMonitor('/hand/left/gesture/index', hands.left.gestureIndex);
+          sendAndMonitor('/hand/left/gesture/score', hands.left.gestureScore);
         }
       } else {
-        oscSender.sendFloat('/hand/left/detected', 0);
+        sendAndMonitor('/hand/left/detected', 0);
       }
       if (hands.right) {
-        oscSender.sendFloat('/hand/right/detected', 1);
-        oscSender.sendLandmarks('hand', 'right', hands.right.landmarks);
+        sendAndMonitor('/hand/right/detected', 1);
+        sendLmAndMonitor('hand', 'right', hands.right.landmarks);
         if (hands.right.gesture) {
-          oscSender.sendFloat('/hand/right/gesture/index', hands.right.gestureIndex);
-          oscSender.sendFloat('/hand/right/gesture/score', hands.right.gestureScore);
+          sendAndMonitor('/hand/right/gesture/index', hands.right.gestureIndex);
+          sendAndMonitor('/hand/right/gesture/score', hands.right.gestureScore);
         }
       } else {
-        oscSender.sendFloat('/hand/right/detected', 0);
+        sendAndMonitor('/hand/right/detected', 0);
       }
     }
 
     if (face && face.length > 0) {
-      oscSender.sendFloat('/face/detected', 1);
-      oscSender.sendLandmarks('face', null, face);
+      sendAndMonitor('/face/detected', 1);
+      sendLmAndMonitor('face', null, face);
     } else {
-      oscSender.sendFloat('/face/detected', 0);
+      sendAndMonitor('/face/detected', 0);
+    }
+
+    if (mainWindow && !mainWindow.isDestroyed() && monitorMessages.length > 0) {
+      mainWindow.webContents.send('osc:monitorBatch', {
+        messages: monitorMessages,
+        timestamp: Date.now(),
+      });
     }
   });
 
@@ -230,16 +252,6 @@ function createWindow() {
 // ── App lifecycle ─────────────────────────
 
 app.whenReady().then(async () => {
-  // macOS camera permission
-  if (process.platform === 'darwin') {
-    const status = systemPreferences.getMediaAccessStatus('camera');
-    console.log('[Main] Camera permission status:', status);
-    if (status !== 'granted') {
-      const granted = await systemPreferences.askForMediaAccess('camera');
-      console.log('[Main] Camera permission granted:', granted);
-    }
-  }
-
   // Initialize Node.js OSC sender
   oscSender.init();
 
@@ -248,6 +260,17 @@ app.whenReady().then(async () => {
 
   // Create window WITHOUT starting Python (lazy start on BLIP mode)
   createWindow();
+
+  // macOS camera permission — must run after a window exists so the system
+  // dialog has a parent to attach to.
+  if (process.platform === 'darwin') {
+    const status = systemPreferences.getMediaAccessStatus('camera');
+    console.log('[Main] Camera permission status:', status);
+    if (status !== 'granted') {
+      const granted = await systemPreferences.askForMediaAccess('camera');
+      console.log('[Main] Camera permission granted:', granted);
+    }
+  }
 });
 
 app.on('window-all-closed', () => {

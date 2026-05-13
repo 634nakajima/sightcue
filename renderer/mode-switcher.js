@@ -77,6 +77,10 @@ function switchMode(newMode) {
   // Update OSC monitor filter
   oscMonitor.setMode(newMode);
 
+  // Clear the shared log so we only show entries relevant to the new mode
+  const captionLog = document.getElementById('caption-log');
+  if (captionLog) captionLog.innerHTML = '';
+
   // Start new mode
   _startNewMode(newMode);
 }
