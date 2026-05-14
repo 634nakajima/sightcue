@@ -23,6 +23,8 @@ python3 -m PyInstaller \
   --collect-all transformers \
   --collect-all sentence_transformers \
   --collect-all tokenizers \
+  --exclude-module torch.distributed \
+  --exclude-module torch.onnx \
   --hidden-import=flask \
   --hidden-import=flask_socketio \
   --hidden-import=engineio.async_drivers.threading \
