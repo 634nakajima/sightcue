@@ -6,6 +6,8 @@ const { ipcRenderer } = require('electron');
 const path = require('path');
 const { HAND_LANDMARK_NAMES, FACE_LANDMARKS, GESTURE_NAMES, ExponentialSmoother } = require('./mediapipe-data');
 const { drawLandmarks } = require('./mediapipe-draw');
+const region = require('./mediapipe-region');
+const oscMonitor = require('../osc-monitor');
 
 let gestureRecognizer = null;
 let faceLandmarker = null;
@@ -21,10 +23,46 @@ let fpsLastTime = 0;
 // Options
 let handEnabled = true;
 let faceEnabled = true;
+let videoWasReady = false;
 
 // DOM references
 let els = {};
 let overlayCtx = null;
+
+// ── OSC send-point selection ────────────────────────────────
+// Only the checked landmarks/axes leave the renderer, so unselected points
+// cost no IPC and no OSC traffic.
+const SELECTION_KEY = 'sightcue.mediapipe.oscSelection';
+const TRACKING_KEY = 'sightcue.mediapipe.tracking';
+const AXES = ['x', 'y', 'z'];
+
+const HAND_POINT_NAMES = Object.keys(HAND_LANDMARK_NAMES)
+  .map(Number)
+  .sort((a, b) => a - b)
+  .map(i => HAND_LANDMARK_NAMES[i]);
+const FACE_POINT_NAMES = Object.keys(FACE_LANDMARKS);
+
+const HAND_PRESETS = {
+  all: HAND_POINT_NAMES,
+  tips: ['wrist', 'thumb/tip', 'index/tip', 'middle/tip', 'ring/tip', 'pinky/tip'],
+  none: [],
+};
+const FACE_PRESETS = {
+  all: FACE_POINT_NAMES,
+  key: [
+    'nose/tip', 'left_eye/inner', 'left_eye/upper', 'left_eye/lower',
+    'right_eye/inner', 'right_eye/upper', 'right_eye/lower',
+    'mouth/upper', 'mouth/lower', 'mouth/left', 'mouth/right', 'jaw/chin',
+  ],
+  none: [],
+};
+
+const selection = {
+  hand: new Set(HAND_POINT_NAMES),
+  face: new Set(FACE_POINT_NAMES),
+  axes: new Set(AXES),
+  gesture: true,
+};
 
 // Latest tracking result for data monitor
 let latestResult = { hands: { left: null, right: null }, face: [] };
@@ -32,12 +70,11 @@ let latestResult = { hands: { left: null, right: null }, face: [] };
 function initMediaPipe(elements) {
   els = elements;
 
-  // Smoothing slider
-  if (els.smoothingSlider) {
-    els.smoothingSlider.addEventListener('input', () => {
-      const val = parseFloat(els.smoothingSlider.value);
-      smoother.setFactor(val);
-      if (els.smoothingValue) els.smoothingValue.textContent = val.toFixed(2);
+  // Smoothing sliders (panel + settings popup are two views of one value)
+  for (const slider of _smoothingSliders()) {
+    slider.addEventListener('input', () => {
+      _applySmoothing(parseFloat(slider.value));
+      _saveTrackingSettings();
     });
   }
 
@@ -45,18 +82,288 @@ function initMediaPipe(elements) {
   if (els.handCheckbox) {
     els.handCheckbox.addEventListener('change', () => {
       handEnabled = els.handCheckbox.checked;
+      // Stop sending -> drop the frozen rows instead of leaving stale values
+      if (!handEnabled) oscMonitor.clearPrefix('/hand/');
+      _updateSendEstimate();
+      _saveTrackingSettings();
     });
   }
   if (els.faceCheckbox) {
     els.faceCheckbox.addEventListener('change', () => {
       faceEnabled = els.faceCheckbox.checked;
+      if (!faceEnabled) oscMonitor.clearPrefix('/face/');
+      _updateSendEstimate();
+      _saveTrackingSettings();
     });
   }
+
+  _loadTrackingSettings();
+  _loadSelection();
+  _buildPointSelectors();
+  _initRegionControls();
+}
+
+// ── Tracking settings persistence ───────────────────────────
+// Hands/Face toggles and the smoothing factor are restored on launch, the same
+// way the OSC send-point selection is.
+
+function _smoothingSliders() {
+  return [els.smoothingSlider, els.smoothingSliderSettings].filter(Boolean);
+}
+
+function _smoothingLabels() {
+  return [els.smoothingValue, els.smoothingValueSettings].filter(Boolean);
+}
+
+function _applySmoothing(value) {
+  smoother.setFactor(value);
+  const applied = smoother.getFactor(); // clamped to the smoother's valid range
+  for (const slider of _smoothingSliders()) {
+    if (parseFloat(slider.value) !== applied) slider.value = String(applied);
+  }
+  for (const label of _smoothingLabels()) {
+    label.textContent = applied.toFixed(2);
+  }
+}
+
+function _loadTrackingSettings() {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(TRACKING_KEY) || 'null');
+  } catch (err) {
+    saved = null;
+  }
+
+  if (saved) {
+    if (typeof saved.hand === 'boolean') handEnabled = saved.hand;
+    if (typeof saved.face === 'boolean') faceEnabled = saved.face;
+    if (typeof saved.smoothing === 'number' && isFinite(saved.smoothing)) {
+      smoother.setFactor(saved.smoothing);
+    }
+  }
+
+  if (els.handCheckbox) els.handCheckbox.checked = handEnabled;
+  if (els.faceCheckbox) els.faceCheckbox.checked = faceEnabled;
+  _applySmoothing(smoother.getFactor());
+}
+
+function _saveTrackingSettings() {
+  try {
+    localStorage.setItem(TRACKING_KEY, JSON.stringify({
+      hand: handEnabled,
+      face: faceEnabled,
+      smoothing: smoother.getFactor(),
+    }));
+  } catch (err) {
+    // Storage unavailable - settings just won't persist
+  }
+}
+
+// ── Send-point selection ────────────────────────────────────
+
+function _loadSelection() {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(SELECTION_KEY) || 'null');
+  } catch (err) {
+    saved = null;
+  }
+  if (!saved) return;
+
+  if (Array.isArray(saved.hand)) {
+    selection.hand = new Set(saved.hand.filter(n => HAND_POINT_NAMES.includes(n)));
+  }
+  if (Array.isArray(saved.face)) {
+    selection.face = new Set(saved.face.filter(n => FACE_POINT_NAMES.includes(n)));
+  }
+  if (Array.isArray(saved.axes)) {
+    const axes = saved.axes.filter(a => AXES.includes(a));
+    if (axes.length > 0) selection.axes = new Set(axes);
+  }
+  if (typeof saved.gesture === 'boolean') selection.gesture = saved.gesture;
+}
+
+function _saveSelection() {
+  try {
+    localStorage.setItem(SELECTION_KEY, JSON.stringify({
+      hand: [...selection.hand],
+      face: [...selection.face],
+      axes: [...selection.axes],
+      gesture: selection.gesture,
+    }));
+  } catch (err) {
+    // Storage unavailable - selection just won't persist
+  }
+}
+
+function _buildPointSelectors() {
+  _renderPointList(els.handPointList, 'hand', HAND_POINT_NAMES);
+  _renderPointList(els.facePointList, 'face', FACE_POINT_NAMES);
+
+  // Gesture (index + score) is a hand extra, not a landmark
+  if (els.gestureCheckbox) {
+    els.gestureCheckbox.checked = selection.gesture;
+    els.gestureCheckbox.addEventListener('change', () => {
+      selection.gesture = els.gestureCheckbox.checked;
+      _onSelectionChanged();
+    });
+  }
+
+  if (els.axisCheckboxes) {
+    els.axisCheckboxes.forEach(cb => {
+      cb.checked = selection.axes.has(cb.dataset.axis);
+      cb.addEventListener('change', () => {
+        if (cb.checked) selection.axes.add(cb.dataset.axis);
+        else selection.axes.delete(cb.dataset.axis);
+        _onSelectionChanged();
+      });
+    });
+  }
+
+  // Preset buttons: data-group="hand|face" data-preset="all|tips|key|none"
+  if (els.presetButtons) {
+    els.presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const presets = group === 'hand' ? HAND_PRESETS : FACE_PRESETS;
+        const names = presets[btn.dataset.preset];
+        if (!names) return;
+        selection[group] = new Set(names);
+        _syncCheckboxes(group);
+        _onSelectionChanged();
+      });
+    });
+  }
+
+  _updateSendEstimate();
+}
+
+function _renderPointList(container, group, names) {
+  if (!container) return;
+  container.innerHTML = names.map(name => `
+    <label class="mp-chip">
+      <input type="checkbox" data-group="${group}" value="${name}" ${selection[group].has(name) ? 'checked' : ''} />
+      <span>${name}</span>
+    </label>`).join('');
+
+  container.addEventListener('change', (e) => {
+    const cb = e.target;
+    if (!cb.matches('input[type="checkbox"]')) return;
+    if (cb.checked) selection[group].add(cb.value);
+    else selection[group].delete(cb.value);
+    _onSelectionChanged();
+  });
+}
+
+function _syncCheckboxes(group) {
+  const container = group === 'hand' ? els.handPointList : els.facePointList;
+  if (!container) return;
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.checked = selection[group].has(cb.value);
+  });
+}
+
+function _onSelectionChanged() {
+  _saveSelection();
+  _updateSendEstimate();
+  // Addresses that are no longer sent would otherwise linger in the OSC monitor
+  oscMonitor.clearMonitor();
+}
+
+function _updateSendEstimate() {
+  if (!els.sendEstimate) return;
+  const axisCount = selection.axes.size;
+  let count = 0;
+  if (handEnabled) {
+    count += 2; // /hand/{left,right}/detected
+    count += 2 * selection.hand.size * axisCount;
+    if (selection.gesture) count += 4; // index + score per hand
+  }
+  if (faceEnabled) {
+    count += 1; // /face/detected
+    count += selection.face.size * axisCount;
+  }
+  els.sendEstimate.textContent = `max ${count} msg/frame`;
+}
+
+// Drop every tracking address from the OSC monitor. Used when nothing is being
+// sent at all (mode stopped, camera off) - in that state no batch arrives, so
+// the monitor's own pruning cannot notice the addresses went away.
+function _clearTrackingRows() {
+  oscMonitor.clearPrefix('/hand/');
+  oscMonitor.clearPrefix('/face/');
+}
+
+function _filterLandmarks(landmarks, allowed) {
+  const useRegion = region.isEnabled();
+  const out = [];
+  for (const lm of landmarks) {
+    if (!allowed.has(lm.name)) continue;
+
+    // With a region set, x/y become region-relative (0-1 inside the quad) and
+    // points outside it are dropped. z is a depth value, so it passes through.
+    let x = lm.x;
+    let y = lm.y;
+    if (useRegion) {
+      const mapped = region.mapPoint(lm.x, lm.y);
+      if (!mapped.inside) continue;
+      x = mapped.u;
+      y = mapped.v;
+    }
+
+    const values = { x, y, z: lm.z };
+    const point = { name: lm.name };
+    for (const axis of AXES) {
+      if (selection.axes.has(axis)) point[axis] = values[axis];
+    }
+    out.push(point);
+  }
+  return out;
+}
+
+// ── Quad region controls ────────────────────────────────────
+
+function _initRegionControls() {
+  const overlay = els.overlay || document.getElementById('roi-overlay');
+  if (overlay) {
+    region.initRegion(overlay);
+    // Dragging a corner must repaint even when the detection loop is idle
+    region.setOnChange(_redrawOverlay);
+  }
+
+  if (els.regionCheckbox) {
+    els.regionCheckbox.checked = region.isEnabled();
+    els.regionCheckbox.addEventListener('change', () => {
+      region.setEnabled(els.regionCheckbox.checked);
+      // Points that just fell outside the region must not linger in the monitor
+      _clearTrackingRows();
+      _updateRegionHint();
+    });
+  }
+  if (els.regionResetBtn) {
+    els.regionResetBtn.addEventListener('click', () => region.resetCorners());
+  }
+  _updateRegionHint();
+}
+
+function _updateRegionHint() {
+  if (!els.regionHint) return;
+  els.regionHint.textContent = region.isEnabled()
+    ? 'drag TL/TR/BR/BL on the preview'
+    : 'off - raw camera coords';
+}
+
+function _redrawOverlay() {
+  if (!overlayCtx) return;
+  const canvas = overlayCtx.canvas;
+  drawLandmarks(overlayCtx, latestResult, canvas.width, canvas.height, fps);
+  region.drawRegion(overlayCtx, canvas.width, canvas.height);
 }
 
 async function startMediaPipe() {
   if (running) return;
   running = true;
+  region.setInteractive(true);
 
   // Get overlay canvas context (shared with ROI)
   const overlay = els.overlay || document.getElementById('roi-overlay');
@@ -104,10 +411,15 @@ async function startMediaPipe() {
 
 function stopMediaPipe() {
   running = false;
+  region.setInteractive(false);
   if (loopTimerId) {
     clearTimeout(loopTimerId);
     loopTimerId = 0;
   }
+
+  // Nothing is being sent anymore - don't leave the last values on screen
+  videoWasReady = false;
+  _clearTrackingRows();
 
   // Clear the overlay canvas
   if (overlayCtx) {
@@ -171,9 +483,15 @@ function _detect() {
 
   const video = els.video;
   if (!video || video.readyState < 2 || !ready) {
+    // Camera stopped / not ready yet: no frames means no OSC, so drop stale rows
+    if (videoWasReady) {
+      videoWasReady = false;
+      _clearTrackingRows();
+    }
     loopTimerId = setTimeout(_detect, 16);
     return;
   }
+  videoWasReady = true;
 
   const now = performance.now();
   const trackingResult = { hands: { left: null, right: null }, face: [] };
@@ -267,33 +585,33 @@ function _detect() {
       }
     }
     drawLandmarks(overlayCtx, trackingResult, canvas.width, canvas.height, fps);
+    region.drawRegion(overlayCtx, canvas.width, canvas.height);
   }
 
   // Send via IPC at ~30fps
   if (now - lastSendTime >= 33) {
     lastSendTime = now;
 
-    const payload = {};
-    if (trackingResult.hands.left) {
-      if (!payload.hands) payload.hands = {};
-      payload.hands.left = {
-        landmarks: trackingResult.hands.left.landmarks,
-        gesture: trackingResult.hands.left.gesture,
-        gestureIndex: trackingResult.hands.left.gestureIndex,
-        gestureScore: trackingResult.hands.left.gestureScore,
-      };
+    // Only the selected points/axes are forwarded to the main process
+    const payload = { handsEnabled: handEnabled, faceEnabled };
+    if (handEnabled) {
+      for (const side of ['left', 'right']) {
+        const hand = trackingResult.hands[side];
+        if (!hand) continue;
+        if (!payload.hands) payload.hands = {};
+        payload.hands[side] = {
+          landmarks: _filterLandmarks(hand.landmarks, selection.hand),
+          gesture: selection.gesture ? hand.gesture : null,
+          gestureIndex: hand.gestureIndex,
+          gestureScore: hand.gestureScore,
+        };
+      }
     }
-    if (trackingResult.hands.right) {
-      if (!payload.hands) payload.hands = {};
-      payload.hands.right = {
-        landmarks: trackingResult.hands.right.landmarks,
-        gesture: trackingResult.hands.right.gesture,
-        gestureIndex: trackingResult.hands.right.gestureIndex,
-        gestureScore: trackingResult.hands.right.gestureScore,
-      };
-    }
-    if (trackingResult.face.length > 0) {
-      payload.face = trackingResult.face;
+    if (faceEnabled && trackingResult.face.length > 0) {
+      // faceDetected is separate from the point list: the face can be tracked
+      // while every one of its points is deselected or outside the region.
+      payload.faceDetected = true;
+      payload.face = _filterLandmarks(trackingResult.face, selection.face);
     }
 
     ipcRenderer.send('osc:sendLandmarks', payload);

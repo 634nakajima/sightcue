@@ -27,6 +27,9 @@ let videoEl = null;
 
 let roiCaptions = {};
 let onROIChanged = null;
+// MediaPipe mode shares this canvas for its quad region, so ROI drawing/dragging
+// has to stand down while that mode owns the pointer.
+let interactive = true;
 
 function initROI(canvasElement, video) {
   overlay = canvasElement;
@@ -157,7 +160,16 @@ function hitTestROI(px, py) {
 }
 
 // --- Mouse handlers ---
+function setInteractive(value) {
+  interactive = !!value;
+  if (!interactive) {
+    dragMode = 'none';
+    dragTarget = null;
+  }
+}
+
 function onMouseDown(e) {
+  if (!interactive) return;
   const rect = overlay.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
@@ -188,6 +200,7 @@ function onMouseDown(e) {
 }
 
 function onMouseMove(e) {
+  if (!interactive) return;
   const rect = overlay.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
@@ -272,6 +285,7 @@ function onMouseMove(e) {
 }
 
 function onMouseUp(e) {
+  if (!interactive) return;
   if (dragMode === 'draw') {
     const rect = overlay.getBoundingClientRect();
     const px = e.clientX - rect.left;
@@ -380,5 +394,5 @@ function setOnROIChanged(cb) { onROIChanged = cb; }
 module.exports = {
   initROI, resizeOverlay, drawROIs, getROICrops, getROIs,
   removeROI, clearROIs, renameROI, setROICaption, setOnROIChanged,
-  switchROIMode,
+  switchROIMode, setInteractive,
 };

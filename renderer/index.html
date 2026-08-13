@@ -146,6 +146,57 @@
           <h2>Data Monitor</h2>
           <div id="mp-data-monitor" class="data-monitor"></div>
         </div>
+        <div class="panel">
+          <div class="mode-panel-header">
+            <h2>Region <span class="hint">(4 corners)</span></h2>
+            <span id="mp-region-hint" class="hint"></span>
+          </div>
+          <div class="mp-sel-row">
+            <label class="mp-chip"><input type="checkbox" id="mp-region-enabled" /><span>Enable region mapping</span></label>
+            <button id="mp-region-reset" class="btn-mini">Reset corners</button>
+          </div>
+          <div class="mp-region-note">
+            Coordinates inside the quad are sent as 0-1 relative to it. Points outside
+            are not sent, but a hand or face seen outside still reports detected = 1.
+          </div>
+        </div>
+        <div class="panel">
+          <div class="mode-panel-header">
+            <h2>OSC Send Points</h2>
+            <span id="mp-send-estimate" class="hint"></span>
+          </div>
+          <div class="mp-sel-row">
+            <span class="mp-sel-label">Axes</span>
+            <label class="mp-chip"><input type="checkbox" class="mp-axis" data-axis="x" checked /><span>x</span></label>
+            <label class="mp-chip"><input type="checkbox" class="mp-axis" data-axis="y" checked /><span>y</span></label>
+            <label class="mp-chip"><input type="checkbox" class="mp-axis" data-axis="z" checked /><span>z</span></label>
+          </div>
+          <div class="mp-sel-group">
+            <div class="mp-sel-head">
+              <span class="mp-sel-label">Hand</span>
+              <span class="mp-presets">
+                <button class="btn-mini mp-preset" data-group="hand" data-preset="all">All</button>
+                <button class="btn-mini mp-preset" data-group="hand" data-preset="tips">Tips</button>
+                <button class="btn-mini mp-preset" data-group="hand" data-preset="none">None</button>
+              </span>
+            </div>
+            <div class="mp-sel-row">
+              <label class="mp-chip"><input type="checkbox" id="mp-gesture-enabled" checked /><span>gesture</span></label>
+            </div>
+            <div id="mp-hand-points" class="mp-point-list"></div>
+          </div>
+          <div class="mp-sel-group">
+            <div class="mp-sel-head">
+              <span class="mp-sel-label">Face</span>
+              <span class="mp-presets">
+                <button class="btn-mini mp-preset" data-group="face" data-preset="all">All</button>
+                <button class="btn-mini mp-preset" data-group="face" data-preset="key">Key</button>
+                <button class="btn-mini mp-preset" data-group="face" data-preset="none">None</button>
+              </span>
+            </div>
+            <div id="mp-face-points" class="mp-point-list"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Teachable Machine Mode Panel -->
@@ -174,7 +225,10 @@
   <!-- Bottom: shared panels -->
   <div class="bottom-panels">
     <div class="panel osc-panel">
-      <h2>OSC Monitor</h2>
+      <div class="mode-panel-header">
+        <h2>OSC Monitor</h2>
+        <button id="osc-clear" class="btn-mini">Clear</button>
+      </div>
       <div id="osc-monitor" class="osc-monitor"></div>
     </div>
     <div class="panel log-panel">
@@ -292,6 +346,17 @@
         readyStatus: document.getElementById('mp-ready-status'),
         dataMonitor: document.getElementById('mp-data-monitor'),
         log: document.getElementById('caption-log'),
+        smoothingSliderSettings: document.getElementById('mp-smoothing'),
+        smoothingValueSettings: document.getElementById('mp-smoothing-val'),
+        handPointList: document.getElementById('mp-hand-points'),
+        facePointList: document.getElementById('mp-face-points'),
+        gestureCheckbox: document.getElementById('mp-gesture-enabled'),
+        axisCheckboxes: Array.from(document.querySelectorAll('.mp-axis')),
+        presetButtons: Array.from(document.querySelectorAll('.mp-preset')),
+        sendEstimate: document.getElementById('mp-send-estimate'),
+        regionCheckbox: document.getElementById('mp-region-enabled'),
+        regionResetBtn: document.getElementById('mp-region-reset'),
+        regionHint: document.getElementById('mp-region-hint'),
       });
 
       teachableMode.initTeachable({

@@ -26,8 +26,11 @@ function init() {
   });
 
   ipcRenderer.on('osc:monitorBatch', (event, data) => {
-    _addBatch(data.messages);
+    _addBatch(data.messages, data.prune);
   });
+
+  const clearBtn = document.getElementById('osc-clear');
+  if (clearBtn) clearBtn.addEventListener('click', clearMonitor);
 }
 
 function setMode(mode) {
@@ -95,13 +98,37 @@ function addOscMessage(address, args, timestamp) {
   _scheduleFlush();
 }
 
-function _addBatch(messages) {
+// A batch is a complete snapshot of what the sender is emitting right now, so
+// any known address under a `prune` prefix that is missing from it has stopped
+// being sent (hand left the frame, point deselected) and must not linger.
+function _addBatch(messages, prune) {
   if (!monitorEl || !Array.isArray(messages)) return;
+  const seen = new Set();
   for (const { address, args } of messages) {
     if (!_matchesMode(address)) continue;
     _pendingUpdates.set(address, _formatArgs(args));
+    seen.add(address);
   }
+
+  if (Array.isArray(prune)) {
+    const known = new Set([...Object.keys(_oscRows), ..._pendingUpdates.keys()]);
+    for (const address of known) {
+      if (seen.has(address)) continue;
+      if (!prune.some(p => address.startsWith(p))) continue;
+      _removeRow(address);
+    }
+  }
+
   _scheduleFlush();
+}
+
+function _removeRow(address) {
+  _pendingUpdates.delete(address);
+  const row = _oscRows[address];
+  if (row) {
+    row.remove();
+    delete _oscRows[address];
+  }
 }
 
 function clearMonitor() {
@@ -115,4 +142,14 @@ function clearMonitor() {
   }
 }
 
-module.exports = { init, addOscMessage, clearMonitor, setMode };
+// Drop rows whose address starts with prefix, e.g. when a tracker is turned off
+// and no further batches will arrive to prune them.
+function clearPrefix(prefix) {
+  if (!monitorEl) return;
+  const known = new Set([...Object.keys(_oscRows), ..._pendingUpdates.keys()]);
+  for (const address of known) {
+    if (address.startsWith(prefix)) _removeRow(address);
+  }
+}
+
+module.exports = { init, addOscMessage, clearMonitor, clearPrefix, setMode };

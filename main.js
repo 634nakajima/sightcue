@@ -144,7 +144,11 @@ function setupIPC() {
   });
 
   ipcMain.on('osc:sendLandmarks', (event, payload) => {
-    const { hands, face } = payload;
+    // handsEnabled/faceEnabled say whether each tracker is running, so "not
+    // detected" (0) is still reported when nothing is in frame. faceDetected is
+    // separate from the point list: a face can be tracked while every one of
+    // its points is deselected or outside the region.
+    const { hands, face, faceDetected, handsEnabled, faceEnabled } = payload;
     const monitorMessages = [];
 
     const sendAndMonitor = (address, value) => {
@@ -155,45 +159,44 @@ function setupIPC() {
     const sendLmAndMonitor = (type, side, landmarks) => {
       for (const lm of landmarks) {
         const prefix = type === 'hand' ? `/hand/${side}/${lm.name}` : `/face/${lm.name}`;
-        sendAndMonitor(`${prefix}/x`, lm.x);
-        sendAndMonitor(`${prefix}/y`, lm.y);
-        sendAndMonitor(`${prefix}/z`, lm.z);
+        // Axes the renderer filtered out are absent from the landmark
+        for (const axis of ['x', 'y', 'z']) {
+          const value = lm[axis];
+          if (typeof value !== 'number') continue;
+          sendAndMonitor(`${prefix}/${axis}`, value);
+        }
       }
     };
 
-    if (hands) {
-      if (hands.left) {
-        sendAndMonitor('/hand/left/detected', 1);
-        sendLmAndMonitor('hand', 'left', hands.left.landmarks);
-        if (hands.left.gesture) {
-          sendAndMonitor('/hand/left/gesture/index', hands.left.gestureIndex);
-          sendAndMonitor('/hand/left/gesture/score', hands.left.gestureScore);
+    if (handsEnabled) {
+      for (const side of ['left', 'right']) {
+        const hand = hands && hands[side];
+        if (hand) {
+          sendAndMonitor(`/hand/${side}/detected`, 1);
+          sendLmAndMonitor('hand', side, hand.landmarks);
+          if (hand.gesture) {
+            sendAndMonitor(`/hand/${side}/gesture/index`, hand.gestureIndex);
+            sendAndMonitor(`/hand/${side}/gesture/score`, hand.gestureScore);
+          }
+        } else {
+          sendAndMonitor(`/hand/${side}/detected`, 0);
         }
-      } else {
-        sendAndMonitor('/hand/left/detected', 0);
-      }
-      if (hands.right) {
-        sendAndMonitor('/hand/right/detected', 1);
-        sendLmAndMonitor('hand', 'right', hands.right.landmarks);
-        if (hands.right.gesture) {
-          sendAndMonitor('/hand/right/gesture/index', hands.right.gestureIndex);
-          sendAndMonitor('/hand/right/gesture/score', hands.right.gestureScore);
-        }
-      } else {
-        sendAndMonitor('/hand/right/detected', 0);
       }
     }
 
-    if (face && face.length > 0) {
-      sendAndMonitor('/face/detected', 1);
-      sendLmAndMonitor('face', null, face);
-    } else {
-      sendAndMonitor('/face/detected', 0);
+    if (faceEnabled) {
+      sendAndMonitor('/face/detected', faceDetected ? 1 : 0);
+      if (faceDetected && face && face.length > 0) {
+        sendLmAndMonitor('face', null, face);
+      }
     }
 
-    if (mainWindow && !mainWindow.isDestroyed() && monitorMessages.length > 0) {
+    // Sent even when empty: the batch is the full set of landmark addresses
+    // being emitted right now, so the monitor can prune everything else.
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('osc:monitorBatch', {
         messages: monitorMessages,
+        prune: ['/hand/', '/face/'],
         timestamp: Date.now(),
       });
     }

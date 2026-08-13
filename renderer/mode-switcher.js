@@ -61,16 +61,19 @@ function switchMode(newMode) {
   // ROI: switch set and constraint per mode
   const overlay = document.getElementById('roi-overlay');
   if (newMode === 'mediapipe') {
-    // MediaPipe: no ROI
-    if (overlay) overlay.style.pointerEvents = 'none';
+    // MediaPipe: no ROI, but the canvas stays interactive for the quad region
+    if (overlay) overlay.style.pointerEvents = 'auto';
+    roi.setInteractive(false);
     // Clear overlay for MediaPipe drawing
     const ctx = overlay && overlay.getContext('2d');
     if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
   } else if (newMode === 'blip') {
     if (overlay) overlay.style.pointerEvents = 'auto';
+    roi.setInteractive(true);
     roi.switchROIMode('blip', 'free');
   } else if (newMode === 'teachable') {
     if (overlay) overlay.style.pointerEvents = 'auto';
+    roi.setInteractive(true);
     roi.switchROIMode('teachable', 'square');
   }
 

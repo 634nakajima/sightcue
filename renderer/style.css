@@ -232,6 +232,94 @@ main {
 }
 
 .mode-panel-header h2 { margin-bottom: 0; }
+.mode-panel-header .hint,
+.mode-panel-header .btn-mini { margin-left: auto; }
+
+.hint {
+  font-size: 11px;
+  color: #888;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.btn-mini {
+  padding: 2px 8px;
+  font-size: 11px;
+  background: #0f3460;
+  color: #ccc;
+  border: 1px solid #1a1a4e;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-mini:hover { background: #1a4a80; color: #fff; }
+
+/* ── MediaPipe: OSC send-point selection & quad region ── */
+.mp-sel-group {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #0f3460;
+}
+
+.mp-sel-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mp-sel-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mp-presets {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.mp-sel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.mp-point-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.mp-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: #ccc;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mp-chip input[type="checkbox"] {
+  accent-color: #e94560;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+
+.mp-chip input:checked + span { color: #64ffda; }
+
+.mp-region-note {
+  font-size: 11px;
+  color: #888;
+  line-height: 1.5;
+}
 
 /* ── Bottom Panels ── */
 .bottom-panels {
