@@ -1,0 +1,71 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    # macos-14+ runners are Apple Silicon, matching the arm64 target
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        working-directory: python
+        run: pip install -r requirements.txt
+
+      - name: Build Python backend
+        run: bash scripts/build-python.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Build Electron app
+        run: npx electron-builder --mac --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # electron-builder skips signing (identity: null), so re-sign everything
+      # ad-hoc with the camera entitlements. This needs no certificate, but the
+      # result is not notarized: users must clear the quarantine attribute once
+      # after downloading (see README).
+      - name: Sign app (ad-hoc)
+        run: bash scripts/sign-mac.sh 'release/mac-arm64/SightCue.app'
+
+      - name: Create DMG
+        run: bash scripts/create-dmg.sh
+
+      - name: List release artifacts
+        run: ls -la release/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sightcue-macos
+          path: release/*.dmg
+          if-no-files-found: error
+
+      - name: Upload to release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
