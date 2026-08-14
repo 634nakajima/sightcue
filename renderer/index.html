@@ -153,11 +153,18 @@
           </div>
           <div class="mp-sel-row">
             <label class="mp-chip"><input type="checkbox" id="mp-region-enabled" /><span>Enable region mapping</span></label>
+            <button id="mp-region-detect" class="btn-mini">Detect</button>
             <button id="mp-region-reset" class="btn-mini">Reset corners</button>
+          </div>
+          <div class="mp-sel-row">
+            <label class="mp-chip"><input type="checkbox" id="mp-region-debug" /><span>Show what Detect saw</span></label>
           </div>
           <div class="mp-region-note">
             Coordinates inside the quad are sent as 0-1 relative to it. Points outside
             are not sent, but a hand or face seen outside still reports detected = 1.
+            <strong>Detect</strong> then click inside the region to snap the corners to
+            it (Esc detects automatically instead). Several frames are sampled and
+            the median is used.
           </div>
         </div>
         <div class="panel">
@@ -356,6 +363,8 @@
         sendEstimate: document.getElementById('mp-send-estimate'),
         regionCheckbox: document.getElementById('mp-region-enabled'),
         regionResetBtn: document.getElementById('mp-region-reset'),
+        regionDetectBtn: document.getElementById('mp-region-detect'),
+        regionDebugCheckbox: document.getElementById('mp-region-debug'),
         regionHint: document.getElementById('mp-region-hint'),
       });
 

@@ -68,6 +68,24 @@ function getCorners() {
   return corners.map(c => ({ ...c }));
 }
 
+/**
+ * Replace all four corners at once, e.g. from automatic rectangle detection.
+ * @param {Array<{x: number, y: number}>} next - TL, TR, BR, BL in 0-1 coords
+ */
+function setCorners(next) {
+  if (!Array.isArray(next) || next.length !== 4) return false;
+  if (!next.every(c => typeof c.x === 'number' && typeof c.y === 'number')) return false;
+
+  corners = next.map(c => ({
+    x: Math.max(0, Math.min(1, c.x)),
+    y: Math.max(0, Math.min(1, c.y)),
+  }));
+  matrixDirty = true;
+  _save();
+  if (onChange) onChange();
+  return true;
+}
+
 function setOnChange(cb) {
   onChange = cb;
 }
@@ -260,6 +278,7 @@ module.exports = {
   setInteractive,
   resetCorners,
   getCorners,
+  setCorners,
   setOnChange,
   mapPoint,
   drawRegion,

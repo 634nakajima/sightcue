@@ -7,6 +7,7 @@ const path = require('path');
 const { HAND_LANDMARK_NAMES, FACE_LANDMARKS, GESTURE_NAMES, ExponentialSmoother } = require('./mediapipe-data');
 const { drawLandmarks } = require('./mediapipe-draw');
 const region = require('./mediapipe-region');
+const { detectQuad, medianQuad } = require('./quad-detect');
 const oscMonitor = require('../osc-monitor');
 
 let gestureRecognizer = null;
@@ -24,6 +25,21 @@ let fpsLastTime = 0;
 let handEnabled = true;
 let faceEnabled = true;
 let videoWasReady = false;
+
+// Rectangle detection for the quad region
+const DETECT_WIDTH = 320;
+// Sample several frames and take the per-corner median, so one noisy frame
+// cannot decide the region. A majority of them has to agree.
+const DETECT_FRAMES = 5;
+const DETECT_FRAME_INTERVAL = 80;
+const DETECT_MIN_HITS = 3;
+let detectCanvas = null;
+let regionHintTimer = 0;
+let seedPickActive = false;
+// Detection debug view: what the detector saw, drawn over the preview
+let debugEnabled = false;
+let debugLayer = null;
+let debugStats = '';
 
 // DOM references
 let els = {};
@@ -343,7 +359,291 @@ function _initRegionControls() {
   if (els.regionResetBtn) {
     els.regionResetBtn.addEventListener('click', () => region.resetCorners());
   }
+  if (els.regionDetectBtn) {
+    els.regionDetectBtn.addEventListener('click', _detectRegionFromFrame);
+  }
+  if (els.regionDebugCheckbox) {
+    els.regionDebugCheckbox.addEventListener('change', () => {
+      debugEnabled = els.regionDebugCheckbox.checked;
+      if (!debugEnabled) {
+        debugLayer = null;
+        debugStats = '';
+      }
+      _redrawOverlay();
+    });
+  }
   _updateRegionHint();
+}
+
+// Detect starts by asking where to look: picking the region by click is far
+// more reliable than "largest thing in frame" once the background is busy.
+// Escape skips the click and falls back to fully automatic detection.
+function _detectRegionFromFrame() {
+  const video = els.video;
+  if (!video || video.readyState < 2 || !video.videoWidth) {
+    _flashRegionHint('camera not ready');
+    return;
+  }
+  if (seedPickActive) {
+    _endSeedPick();
+    return;
+  }
+  _beginSeedPick();
+}
+
+function _beginSeedPick() {
+  const overlay = els.overlay || document.getElementById('roi-overlay');
+  if (!overlay) return;
+
+  seedPickActive = true;
+  // Stand down corner dragging so the click is unambiguously a seed
+  region.setInteractive(false);
+  overlay.style.cursor = 'crosshair';
+  overlay.addEventListener('mousedown', _onSeedClick);
+  document.addEventListener('keydown', _onSeedKey);
+
+  clearTimeout(regionHintTimer);
+  if (els.regionHint) els.regionHint.textContent = 'click inside the region (Esc: auto)';
+}
+
+function _endSeedPick() {
+  const overlay = els.overlay || document.getElementById('roi-overlay');
+  seedPickActive = false;
+  if (overlay) {
+    overlay.removeEventListener('mousedown', _onSeedClick);
+    overlay.style.cursor = 'default';
+  }
+  document.removeEventListener('keydown', _onSeedKey);
+  region.setInteractive(running);
+  _updateRegionHint();
+}
+
+function _onSeedClick(e) {
+  const overlay = e.currentTarget;
+  const rect = overlay.getBoundingClientRect();
+  const seed = {
+    x: (e.clientX - rect.left) / rect.width,
+    y: (e.clientY - rect.top) / rect.height,
+  };
+  e.preventDefault();
+  _endSeedPick();
+  _runDetection(seed);
+}
+
+function _onSeedKey(e) {
+  if (e.key === 'Escape') {
+    _endSeedPick();
+    _runDetection(null); // fully automatic
+  }
+}
+
+// Sample DETECT_FRAMES frames and keep the per-corner median
+function _runDetection(seed) {
+  const results = [];
+  let attempts = 0;
+
+  if (els.regionHint) els.regionHint.textContent = 'detecting...';
+
+  const step = () => {
+    const quad = _detectOnce(seed);
+    if (quad) results.push(quad);
+    if (++attempts < DETECT_FRAMES) {
+      setTimeout(step, DETECT_FRAME_INTERVAL);
+      return;
+    }
+    _finishDetection(results, seed);
+  };
+  step();
+}
+
+function _detectOnce(seed) {
+  const video = els.video;
+  if (!video || video.readyState < 2 || !video.videoWidth) return null;
+
+  // Detection runs on a downscaled copy: fast, and less sensitive to texture
+  const width = DETECT_WIDTH;
+  const height = Math.max(1, Math.round(width * video.videoHeight / video.videoWidth));
+  if (!detectCanvas) detectCanvas = document.createElement('canvas');
+  detectCanvas.width = width;
+  detectCanvas.height = height;
+  const ctx = detectCanvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, width, height);
+
+  const debug = debugEnabled ? {} : undefined;
+  try {
+    const quad = detectQuad(ctx.getImageData(0, 0, width, height), seed || undefined, debug);
+    if (debug) _renderDebug(debug, quad);
+    return quad;
+  } catch (err) {
+    console.error('[MediaPipe] Quad detection failed:', err);
+    return null;
+  }
+}
+
+// ── Detection debug view ────────────────────────────────────
+// Painted once per detection into an offscreen canvas and then blitted over the
+// preview, so inspecting a failure costs nothing in the tracking loop.
+
+function _renderDebug(debug, quad) {
+  if (!debug.width || !debug.height) {
+    debugLayer = null;
+    debugStats = 'no edge data';
+    return;
+  }
+
+  if (!debugLayer) debugLayer = document.createElement('canvas');
+  debugLayer.width = debug.width;
+  debugLayer.height = debug.height;
+  const ctx = debugLayer.getContext('2d');
+  ctx.clearRect(0, 0, debug.width, debug.height);
+
+  // Edge pixels
+  if (debug.edges) {
+    const image = ctx.createImageData(debug.width, debug.height);
+    for (let i = 0; i < debug.edges.length; i++) {
+      if (!debug.edges[i]) continue;
+      const p = i * 4;
+      image.data[p] = 100;
+      image.data[p + 1] = 220;
+      image.data[p + 2] = 255;
+      image.data[p + 3] = 200;
+    }
+    ctx.putImageData(image, 0, 0);
+  }
+
+  // Hough lines
+  if (Array.isArray(debug.lines)) {
+    ctx.strokeStyle = 'rgba(255, 200, 60, 0.55)';
+    ctx.lineWidth = 1;
+    for (const line of debug.lines) {
+      const cos = Math.cos(line.theta);
+      const sin = Math.sin(line.theta);
+      const x0 = cos * line.rho;
+      const y0 = sin * line.rho;
+      const span = debug.width + debug.height;
+      ctx.beginPath();
+      ctx.moveTo(x0 + span * -sin, y0 + span * cos);
+      ctx.lineTo(x0 - span * -sin, y0 - span * cos);
+      ctx.stroke();
+    }
+  }
+
+  // Best candidate that was rejected, then the accepted quad on top
+  if (!quad && debug.bestQuad) {
+    ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
+    ctx.lineWidth = 2;
+    _strokeQuad(ctx, debug.bestQuad);
+  }
+  if (quad) {
+    ctx.strokeStyle = 'rgba(80, 255, 140, 0.95)';
+    ctx.lineWidth = 2;
+    _strokeQuad(ctx, quad.map(p => ({ x: p.x * debug.width, y: p.y * debug.height })));
+  }
+
+  if (debug.seedPoint) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(debug.seedPoint.x, debug.seedPoint.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const r = debug.rejected || {};
+  const rejects = Object.keys(r).filter(k => r[k] > 0).map(k => `${k}:${r[k]}`).join(' ');
+  debugStats = [
+    `method=${debug.method}`,
+    `edges=${debug.edgeCount}`,
+    `lines=${debug.lines ? debug.lines.length : 0}`,
+    `cand=${debug.candidates}`,
+    `support=${(debug.bestSupport || 0).toFixed(2)}/${debug.minSupport}`,
+    // Always shown: "no rejections at all" means no quad was ever built, which
+    // is a different problem from "quads were built and thrown away"
+    `rejected=${rejects || 'none'}`,
+    debug.usedBorders ? 'borders=used' : '',
+  ].filter(Boolean).join('  ');
+  console.log('[MediaPipe] detect debug:', debugStats);
+}
+
+function _strokeQuad(ctx, corners) {
+  ctx.beginPath();
+  ctx.moveTo(corners[0].x, corners[0].y);
+  for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i].x, corners[i].y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function _drawDebugLayer(ctx, w, h) {
+  if (!debugEnabled || !debugLayer) return;
+  ctx.save();
+  ctx.globalAlpha = 0.75;
+  ctx.drawImage(debugLayer, 0, 0, w, h);
+  ctx.restore();
+
+  if (debugStats) {
+    ctx.save();
+    ctx.font = '11px monospace';
+
+    // Wrap instead of running off the edge - the tail of this string is the
+    // part worth reading when a detection fails
+    const lines = [];
+    let current = '';
+    for (const token of debugStats.split('  ')) {
+      const candidate = current ? `${current}  ${token}` : token;
+      if (current && ctx.measureText(candidate).width > w - 18) {
+        lines.push(current);
+        current = token;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) lines.push(current);
+
+    const lineHeight = 14;
+    const boxHeight = lines.length * lineHeight + 6;
+    const boxWidth = Math.min(w - 8, Math.max(...lines.map(l => ctx.measureText(l).width)) + 10);
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(4, h - boxHeight - 4, boxWidth, boxHeight);
+    ctx.fillStyle = '#fff';
+    lines.forEach((line, i) => {
+      ctx.fillText(line, 9, h - boxHeight - 4 + 15 + i * lineHeight);
+    });
+    ctx.restore();
+  }
+}
+
+function _finishDetection(results, seed) {
+  // A seeded run that found nothing is worth retrying automatically: the click
+  // may have landed on a spot the threshold assigned to the background.
+  if (results.length < DETECT_MIN_HITS) {
+    if (seed) {
+      _flashRegionHint('seeded detect failed, trying auto');
+      _runDetection(null);
+      return;
+    }
+    _flashRegionHint(results.length ? 'unstable, try again' : 'no rectangle found');
+    return;
+  }
+
+  const quad = medianQuad(results);
+  if (!quad || !region.setCorners(quad)) {
+    _flashRegionHint('no rectangle found');
+    return;
+  }
+
+  // Corners are meaningless while the region is off, so turn it on
+  if (!region.isEnabled()) {
+    region.setEnabled(true);
+    if (els.regionCheckbox) els.regionCheckbox.checked = true;
+  }
+  _clearTrackingRows();
+  _flashRegionHint(`detected (${results.length}/${DETECT_FRAMES} frames)`);
+  _log(`Region corners set from detected rectangle (${results.length}/${DETECT_FRAMES} frames${seed ? ', seeded' : ', auto'})`);
+}
+
+function _flashRegionHint(message) {
+  if (!els.regionHint) return;
+  els.regionHint.textContent = message;
+  clearTimeout(regionHintTimer);
+  regionHintTimer = setTimeout(_updateRegionHint, 2500);
 }
 
 function _updateRegionHint() {
@@ -357,6 +657,7 @@ function _redrawOverlay() {
   if (!overlayCtx) return;
   const canvas = overlayCtx.canvas;
   drawLandmarks(overlayCtx, latestResult, canvas.width, canvas.height, fps);
+  _drawDebugLayer(overlayCtx, canvas.width, canvas.height);
   region.drawRegion(overlayCtx, canvas.width, canvas.height);
 }
 
@@ -411,6 +712,7 @@ async function startMediaPipe() {
 
 function stopMediaPipe() {
   running = false;
+  if (seedPickActive) _endSeedPick();
   region.setInteractive(false);
   if (loopTimerId) {
     clearTimeout(loopTimerId);
@@ -585,6 +887,7 @@ function _detect() {
       }
     }
     drawLandmarks(overlayCtx, trackingResult, canvas.width, canvas.height, fps);
+    _drawDebugLayer(overlayCtx, canvas.width, canvas.height);
     region.drawRegion(overlayCtx, canvas.width, canvas.height);
   }
 
