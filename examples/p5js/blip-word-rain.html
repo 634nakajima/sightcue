@@ -192,42 +192,6 @@ function updateWords() {
 }
 
 function drawUI() {
-  fill(255, 180);
-  noStroke();
-  textSize(14);
-  textAlign(LEFT);
-  textFont('monospace');
-  text('Word Rain — SightCue BLIP', 20, 30);
-
-  textSize(10);
-  for (let i = 0; i < 4; i++) {
-    let y = 55 + i * 22;
-    fill(100);
-    text(`trigger${i + 1}`, 20, y);
-
-    fill(40);
-    rect(90, y - 10, 120, 12, 3);
-
-    fill(...TRIGGER_COLORS[i], 200);
-    rect(90, y - 10, 120 * triggerValues[i], 12, 3);
-
-    fill(180);
-    text(triggerValues[i].toFixed(2), 220, y);
-  }
-
-  let histY = height - 30;
-  textAlign(LEFT);
-  for (let i = 0; i < captionHistory.length; i++) {
-    let age = frameCount - captionHistory[i].time;
-    let alpha = map(age, 0, 600, 200, 0);
-    if (alpha <= 0) continue;
-    fill(200, 200, 220, alpha);
-    textSize(i === 0 ? 13 : 11);
-    text(captionHistory[i].text, 20, histY);
-    histY -= 18;
-  }
-
-  textFont('Georgia');
 }
 
 function windowResized() {
